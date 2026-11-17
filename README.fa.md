@@ -12,11 +12,11 @@
 <div align="center" dir="ltr">
 
 [![Release](https://img.shields.io/badge/release-v0.1.0-blue.svg?logo=github)](https://github.com/sarkarpour/venom-dans/releases)
-[![Direct Download](https://img.shields.io/badge/download-latest%20packages-brightgreen.svg?logo=powershell)](#-دانلود-مستقیم-و-ریلیزها-releases)
-[![Tests](https://img.shields.io/badge/tests-25%20passed-brightgreen.svg?logo=pytest)](https://github.com/sarkarpour/venom-dans/actions)
+[![Direct Download](https://img.shields.io/badge/download-latest%20packages-brightgreen.svg?logo=github)](#releases)
+[![Tests](https://img.shields.io/badge/tests-25%20passed-brightgreen.svg?logo=pytest)](https://github.com/sarkarpour/venom-dans)
 [![Code Style](https://img.shields.io/badge/code%20style-ruff-000000.svg?logo=ruff)](https://github.com/astral-sh/ruff)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20Windows%20%7C%20Android-orange.svg)](#-دانلود-مستقیم-و-ریلیزها-releases)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg?logo=open-source-initiative)](LICENSE)
+[![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20Windows%20%7C%20Android-orange.svg?logo=linux)](#releases)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg?logo=python)](https://www.python.org/downloads/)
 
 ---
@@ -34,6 +34,7 @@
 
 ---
 
+<a id="releases"></a>
 ## 📥 دانلود مستقیم و ریلیزها (Releases)
 
 > [!TIP]
@@ -41,13 +42,13 @@
 
 <div dir="ltr">
 
-| پلتفرم / سیستم‌عامل | پسوند | نسخه | حجم | ⚡ لینک دانلود مستقیم (یک‌کلیک) | 📦 ریلیز گیت‌هاب | دستور نصب سریع |
-|:---|:---:|:---:|:---:|:---:|:---:|:---|
-| **🐧 لینوکس (دبیان / اوبونتو / مینت)** | `.deb` | `v0.1.0` | `~77 KB` | [**⬇️ دانلود مستقیم دبیان (.deb)**](https://github.com/sarkarpour/venom-dans/raw/main/dist/ferrowidget_0.1.0_all.deb) | [صفحه انتشار](https://github.com/sarkarpour/venom-dans/releases/tag/v0.1.0) | `sudo dpkg -i ferrowidget_0.1.0_all.deb` |
-| **🐧 لینوکس (تمام توزیع‌ها - اسکریپت خودکار)** | `.sh` | `v0.1.0` | `~2 KB` | [**⬇️ دانلود اسکریپت نصب (.sh)**](https://github.com/sarkarpour/venom-dans/raw/main/packaging/linux/install_linux.sh) | [صفحه انتشار](https://github.com/sarkarpour/venom-dans/releases/tag/v0.1.0) | `bash packaging/linux/install_linux.sh` |
-| **🪟 ویندوز (۱۰ و ۱۱ - پرتابل)** | `.zip` | `v0.1.0` | `~160 KB` | [**⬇️ دانلود مستقیم پکیج ویندوز (.zip)**](https://github.com/sarkarpour/venom-dans/raw/main/dist/ferrowidget-windows.zip) | [صفحه انتشار](https://github.com/sarkarpour/venom-dans/releases/tag/v0.1.0) | استخراج و کلیک روی `install_windows.bat` |
-| **🤖 اندروید (PWA تحت وب و آفلاین)** | `.zip` | `v0.1.0` | `~197 KB` | [**⬇️ دانلود مستقیم نسخه اندروید (.zip)**](https://github.com/sarkarpour/venom-dans/raw/main/dist/ferrowidget-android.zip) | [صفحه انتشار](https://github.com/sarkarpour/venom-dans/releases/tag/v0.1.0) | باز کردن `index.html` ← "Add to Home screen" |
-| **🐍 بسته پایتون (Wheel عمومی)** | `.whl` | `v0.1.0` | `~49 KB` | [**⬇️ دانلود مستقیم پکیج پایتون (.whl)**](https://github.com/sarkarpour/venom-dans/raw/main/dist/ferrowidget-0.1.0-py3-none-any.whl) | [صفحه انتشار](https://github.com/sarkarpour/venom-dans/releases/tag/v0.1.0) | `pip install ferrowidget-0.1.0-py3-none-any.whl` |
+| پلتفرم / سیستم‌عامل | پسوند | نسخه | حجم | ⚡ لینک دانلود مستقیم (یک‌کلیک) | دستور نصب سریع |
+|:---|:---:|:---:|:---:|:---:|:---|
+| **🐧 لینوکس (دبیان / اوبونتو / مینت)** | `.deb` | `v0.1.0` | `~77 KB` | [**⬇️ دانلود مستقیم دبیان (.deb)**](https://raw.githubusercontent.com/sarkarpour/venom-dans/main/dist/ferrowidget_0.1.0_all.deb) | `sudo dpkg -i ferrowidget_0.1.0_all.deb` |
+| **🐧 لینوکس (تمام توزیع‌ها - پرتابل)** | `.tar.gz` | `v0.1.0` | `~95 KB` | [**⬇️ دانلود پکیج لینوکس (.tar.gz)**](https://raw.githubusercontent.com/sarkarpour/venom-dans/main/dist/ferrowidget-linux.tar.gz) | `tar -xzf ferrowidget-linux.tar.gz && bash install_linux.sh` |
+| **🪟 ویندوز (۱۰ و ۱۱ - پرتابل)** | `.zip` | `v0.1.0` | `~160 KB` | [**⬇️ دانلود مستقیم پکیج ویندوز (.zip)**](https://raw.githubusercontent.com/sarkarpour/venom-dans/main/dist/ferrowidget-windows.zip) | استخراج و کلیک روی `install_windows.bat` |
+| **🤖 اندروید (PWA تحت وب و آفلاین)** | `.zip` | `v0.1.0` | `~197 KB` | [**⬇️ دانلود مستقیم نسخه اندروید (.zip)**](https://raw.githubusercontent.com/sarkarpour/venom-dans/main/dist/ferrowidget-android.zip) | باز کردن `index.html` ← "Add to Home screen" |
+| **🐍 بسته پایتون (Wheel عمومی)** | `.whl` | `v0.1.0` | `~49 KB` | [**⬇️ دانلود مستقیم پکیج پایتون (.whl)**](https://raw.githubusercontent.com/sarkarpour/venom-dans/main/dist/ferrowidget-0.1.0-py3-none-any.whl) | `pip install ferrowidget-0.1.0-py3-none-any.whl` |
 
 </div>
 
@@ -55,6 +56,7 @@
 جهت اطمینان از سلامت فایل‌های دانلودی:
 ```text
 487b2a76905ab7cfc9f4e51aa087c2d68f780a3ff3d07faee35f88691a134224  ferrowidget_0.1.0_all.deb
+9b8f2d61a31d0ec78374617fc31a484d252ffc8d93616185d481f3047aa9df83  ferrowidget-linux.tar.gz
 1aac380d3240744506f4467f7d3ccf592b873f6a903e41b58590d6afa7d46480  ferrowidget-windows.zip
 a03fdd71dc25823b85989236b8154a6cf8ac1633a6d9263bb788408646fbf05a  ferrowidget-android.zip
 f7321073a8c9529c83abace1b18794d62cbf9c7cb44e34453f6fd1b1436f7f31  ferrowidget-0.1.0-py3-none-any.whl
@@ -113,7 +115,7 @@ f7321073a8c9529c83abace1b18794d62cbf9c7cb44e34453f6fd1b1436f7f31  ferrowidget-0.
 ### ۱. راهنمای نصب روی لینوکس (Linux)
 
 #### روش الف: بسته دبیان / اوبونتو (`.deb`) — روش پیشنهادی و مستقیم
-فایل [`ferrowidget_0.1.0_all.deb`](https://github.com/sarkarpour/venom-dans/raw/main/dist/ferrowidget_0.1.0_all.deb) را دانلود کرده و اجرا کنید:
+فایل [`ferrowidget_0.1.0_all.deb`](https://raw.githubusercontent.com/sarkarpour/venom-dans/main/dist/ferrowidget_0.1.0_all.deb) را دانلود کرده و اجرا کنید:
 ```bash
 sudo dpkg -i ferrowidget_0.1.0_all.deb
 sudo apt install -f   # در صورت نیاز به دانلود پیش‌نیازهای سیستمی
@@ -122,6 +124,11 @@ sudo apt install -f   # در صورت نیاز به دانلود پیش‌نیا
 #### روش ب: اسکریپت نصب یک‌کلیکه برای تمام توزیع‌ها (Arch, Fedora, openSUSE)
 ```bash
 curl -sSL https://raw.githubusercontent.com/sarkarpour/venom-dans/main/packaging/linux/install_linux.sh | bash
+```
+یا پکیج پرتابل [`ferrowidget-linux.tar.gz`](https://raw.githubusercontent.com/sarkarpour/venom-dans/main/dist/ferrowidget-linux.tar.gz) را دانلود و استخراج کرده و اجرا کنید:
+```bash
+tar -xzf ferrowidget-linux.tar.gz
+bash install_linux.sh
 ```
 
 #### روش ج: اجرای دستی از سورس کد
@@ -139,7 +146,7 @@ ferrowidget run
 ### ۲. راهنمای نصب روی ویندوز (Windows)
 
 ۱. مطمئن شوید [پایتون ۳.۱۰ یا بالاتر](https://www.python.org/downloads/) نصب است و حتماً گزینه **"Add python.exe to PATH"** را فعال کرده‌اید.  
-۲. بسته فشرده [`ferrowidget-windows.zip`](https://github.com/sarkarpour/venom-dans/raw/main/dist/ferrowidget-windows.zip) را مستقیماً دانلود و استخراج کنید.  
+۲. بسته فشرده [`ferrowidget-windows.zip`](https://raw.githubusercontent.com/sarkarpour/venom-dans/main/dist/ferrowidget-windows.zip) را مستقیماً دانلود و استخراج کنید.  
 ۳. روی فایل `install_windows.bat` دوبار کلیک کنید.  
 ۴. برنامه تمام پکیج‌ها را به صورت خودکار نصب کرده و میانبر **FerroWidget** را روی دسکتاپ می‌گذارد و ویجت در پس‌زمینه اجرا می‌شود.
 
@@ -157,7 +164,7 @@ pyinstaller packaging\windows\ferrowidget.spec
 ویجت برای گوشی‌های اندرویدی با موتور گرافیکی WebGL 2.0 پورت شده است:
 
 #### روش الف: وب‌اپلیکیشن پیش‌رونده (PWA) — پیشنهاد شده
-۱. فایل [`ferrowidget-android.zip`](https://github.com/sarkarpour/venom-dans/raw/main/dist/ferrowidget-android.zip) را دانلود و استخراج کنید یا مستقیماً فایل [`packaging/android/web_visualizer/index.html`](packaging/android/web_visualizer/index.html) را در مرورگر کروم گوشی باز کنید.  
+۱. فایل [`ferrowidget-android.zip`](https://raw.githubusercontent.com/sarkarpour/venom-dans/main/dist/ferrowidget-android.zip) را دانلود و استخراج کنید یا مستقیماً فایل [`packaging/android/web_visualizer/index.html`](packaging/android/web_visualizer/index.html) را در مرورگر کروم گوشی باز کنید.  
 ۲. روی منوی سه نقطه کروم **(⋮)** ضربه بزنید و گزینه **«Add to Home screen»** یا **«نصب برنامه (Install app)»** را انتخاب کنید.  
 ۳. برنامه به شکل یک اپلیکیشن مستقل با آیکون اختصاصی روی صفحه گوشی نصب می‌شود و کاملاً آفلاین کار می‌کند!  
 ۴. با زدن دکمه **🎤 Mic** اجازه دسترسی میکروفون را بدهید تا قطره فروسیال با صدای موزیک یا محیط واکنش دهد.
@@ -307,6 +314,6 @@ pytest
 
 ## 📄 لایسنس
 
-این پروژه تحت لایسنس [MIT](https://opensource.org/licenses/MIT) منتشر شده است و استفاده از آن آزاد و رایگان می‌باشد.
+این پروژه تحت لایسنس [MIT](LICENSE) منتشر شده است و استفاده از آن آزاد و رایگان می‌باشد.
 
 </div>

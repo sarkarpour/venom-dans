@@ -9,11 +9,11 @@
 <div align="center">
 
 [![Release](https://img.shields.io/badge/release-v0.1.0-blue.svg?logo=github)](https://github.com/sarkarpour/venom-dans/releases)
-[![Direct Download](https://img.shields.io/badge/download-latest%20packages-brightgreen.svg?logo=powershell)](#-releases--direct-downloads)
-[![Tests](https://img.shields.io/badge/tests-25%20passed-brightgreen.svg?logo=pytest)](https://github.com/sarkarpour/venom-dans/actions)
+[![Direct Download](https://img.shields.io/badge/download-latest%20packages-brightgreen.svg?logo=github)](#releases)
+[![Tests](https://img.shields.io/badge/tests-25%20passed-brightgreen.svg?logo=pytest)](https://github.com/sarkarpour/venom-dans)
 [![Code Style](https://img.shields.io/badge/code%20style-ruff-000000.svg?logo=ruff)](https://github.com/astral-sh/ruff)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20Windows%20%7C%20Android-orange.svg)](#-releases--direct-downloads)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg?logo=open-source-initiative)](LICENSE)
+[![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20Windows%20%7C%20Android-orange.svg?logo=linux)](#releases)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg?logo=python)](https://www.python.org/downloads/)
 
 **A photorealistic, glossy ferrofluid desktop widget dancing in real-time to your system audio.**  
@@ -28,23 +28,25 @@
 
 </div>
 
+<a id="releases"></a>
 ## 📥 Releases & Direct Downloads
 
 > [!TIP]
-> **Version 0.1.0 is ready!** Click any of the **Direct Download** buttons below to download the package directly to your computer, or visit the [GitHub Releases](https://github.com/sarkarpour/venom-dans/releases) page.
+> **Version 0.1.0 is released!** Click any of the **1-Click Direct Download** links below to download packages directly in your browser, or visit the [GitHub Releases](https://github.com/sarkarpour/venom-dans/releases) page for release notes and tags.
 
-| Platform / Target | Package | Version | Size | ⚡ 1-Click Direct Download | 📦 GitHub Release | Quick Install Command |
-|:---|:---:|:---:|:---:|:---:|:---:|:---|
-| **🐧 Linux (Debian / Ubuntu / Mint)** | `.deb` | `v0.1.0` | `~77 KB` | [**⬇️ Download `.deb`**](https://github.com/sarkarpour/venom-dans/raw/main/dist/ferrowidget_0.1.0_all.deb) | [Release Asset](https://github.com/sarkarpour/venom-dans/releases/tag/v0.1.0) | `sudo dpkg -i ferrowidget_0.1.0_all.deb` |
-| **🐧 Linux (Universal Distros)** | `.sh` | `v0.1.0` | `~2 KB` | [**⬇️ Download Installer**](https://github.com/sarkarpour/venom-dans/raw/main/packaging/linux/install_linux.sh) | [Release Asset](https://github.com/sarkarpour/venom-dans/releases/tag/v0.1.0) | `bash packaging/linux/install_linux.sh` |
-| **🪟 Windows (10 / 11)** | `.zip` | `v0.1.0` | `~160 KB` | [**⬇️ Download `.zip`**](https://github.com/sarkarpour/venom-dans/raw/main/dist/ferrowidget-windows.zip) | [Release Asset](https://github.com/sarkarpour/venom-dans/releases/tag/v0.1.0) | Extract & run `install_windows.bat` |
-| **🤖 Android (PWA / WebGL)** | `.zip` | `v0.1.0` | `~197 KB` | [**⬇️ Download `.zip`**](https://github.com/sarkarpour/venom-dans/raw/main/dist/ferrowidget-android.zip) | [Release Asset](https://github.com/sarkarpour/venom-dans/releases/tag/v0.1.0) | Open `index.html` → "Add to Home screen" |
-| **🐍 Python Wheel (Cross-Platform)** | `.whl` | `v0.1.0` | `~49 KB` | [**⬇️ Download `.whl`**](https://github.com/sarkarpour/venom-dans/raw/main/dist/ferrowidget-0.1.0-py3-none-any.whl) | [Release Asset](https://github.com/sarkarpour/venom-dans/releases/tag/v0.1.0) | `pip install ferrowidget-0.1.0-py3-none-any.whl` |
+| Platform / Target | Package | Version | Size | ⚡ 1-Click Direct Download | Quick Install Command |
+|:---|:---:|:---:|:---:|:---:|:---|
+| **🐧 Linux (Debian / Ubuntu / Mint)** | `.deb` | `v0.1.0` | `~77 KB` | [**⬇️ Download `.deb`**](https://raw.githubusercontent.com/sarkarpour/venom-dans/main/dist/ferrowidget_0.1.0_all.deb) | `sudo dpkg -i ferrowidget_0.1.0_all.deb` |
+| **🐧 Linux (Universal Distros)** | `.tar.gz` | `v0.1.0` | `~95 KB` | [**⬇️ Download `.tar.gz`**](https://raw.githubusercontent.com/sarkarpour/venom-dans/main/dist/ferrowidget-linux.tar.gz) | `tar -xzf ferrowidget-linux.tar.gz && bash install_linux.sh` |
+| **🪟 Windows (10 / 11)** | `.zip` | `v0.1.0` | `~160 KB` | [**⬇️ Download `.zip`**](https://raw.githubusercontent.com/sarkarpour/venom-dans/main/dist/ferrowidget-windows.zip) | Extract & run `install_windows.bat` |
+| **🤖 Android (PWA / WebGL)** | `.zip` | `v0.1.0` | `~197 KB` | [**⬇️ Download `.zip`**](https://raw.githubusercontent.com/sarkarpour/venom-dans/main/dist/ferrowidget-android.zip) | Open `index.html` → "Add to Home screen" |
+| **🐍 Python Wheel (Cross-Platform)** | `.whl` | `v0.1.0` | `~49 KB` | [**⬇️ Download `.whl`**](https://raw.githubusercontent.com/sarkarpour/venom-dans/main/dist/ferrowidget-0.1.0-py3-none-any.whl) | `pip install ferrowidget-0.1.0-py3-none-any.whl` |
 
 ### 🔐 Checksums (SHA-256)
 Verify file integrity after downloading:
 ```text
 487b2a76905ab7cfc9f4e51aa087c2d68f780a3ff3d07faee35f88691a134224  ferrowidget_0.1.0_all.deb
+9b8f2d61a31d0ec78374617fc31a484d252ffc8d93616185d481f3047aa9df83  ferrowidget-linux.tar.gz
 1aac380d3240744506f4467f7d3ccf592b873f6a903e41b58590d6afa7d46480  ferrowidget-windows.zip
 a03fdd71dc25823b85989236b8154a6cf8ac1633a6d9263bb788408646fbf05a  ferrowidget-android.zip
 f7321073a8c9529c83abace1b18794d62cbf9c7cb44e34453f6fd1b1436f7f31  ferrowidget-0.1.0-py3-none-any.whl
@@ -99,7 +101,7 @@ f7321073a8c9529c83abace1b18794d62cbf9c7cb44e34453f6fd1b1436f7f31  ferrowidget-0.
 ### 1. Linux Setup
 
 #### Method A: Debian / Ubuntu Package (`.deb`) — Recommended
-Download [`ferrowidget_0.1.0_all.deb`](https://github.com/sarkarpour/venom-dans/raw/main/dist/ferrowidget_0.1.0_all.deb) directly and install:
+Download [`ferrowidget_0.1.0_all.deb`](https://raw.githubusercontent.com/sarkarpour/venom-dans/main/dist/ferrowidget_0.1.0_all.deb) directly and install:
 ```bash
 sudo dpkg -i ferrowidget_0.1.0_all.deb
 sudo apt install -f   # Installs system dependencies if needed
@@ -109,6 +111,11 @@ sudo apt install -f   # Installs system dependencies if needed
 Works across Arch Linux, Fedora, openSUSE, Manjaro, and any Linux distribution:
 ```bash
 curl -sSL https://raw.githubusercontent.com/sarkarpour/venom-dans/main/packaging/linux/install_linux.sh | bash
+```
+Or download and extract [`ferrowidget-linux.tar.gz`](https://raw.githubusercontent.com/sarkarpour/venom-dans/main/dist/ferrowidget-linux.tar.gz):
+```bash
+tar -xzf ferrowidget-linux.tar.gz
+bash install_linux.sh
 ```
 
 #### Method C: Developer Virtual Environment
@@ -125,7 +132,7 @@ pip install -e .
 ### 2. Windows Setup
 
 1. Install [Python 3.10+](https://www.python.org/downloads/) (make sure to check **"Add python.exe to PATH"**).
-2. Download [`ferrowidget-windows.zip`](https://github.com/sarkarpour/venom-dans/raw/main/dist/ferrowidget-windows.zip) directly.
+2. Download [`ferrowidget-windows.zip`](https://raw.githubusercontent.com/sarkarpour/venom-dans/main/dist/ferrowidget-windows.zip) directly.
 3. Extract the ZIP file and double-click `install_windows.bat`.
 4. A desktop shortcut named **FerroWidget** will be created, and the widget will launch automatically in the background.
 
@@ -143,7 +150,7 @@ The resulting executable is generated in `dist\ferrowidget.exe`.
 FerroWidget on Android runs via a hardware-accelerated WebGL 2.0 PWA with live microphone reactivity:
 
 #### Method A: Progressive Web App (PWA) — Recommended
-1. Download [`ferrowidget-android.zip`](https://github.com/sarkarpour/venom-dans/raw/main/dist/ferrowidget-android.zip) or open [`packaging/android/web_visualizer/index.html`](packaging/android/web_visualizer/index.html) in mobile Chrome.
+1. Download [`ferrowidget-android.zip`](https://raw.githubusercontent.com/sarkarpour/venom-dans/main/dist/ferrowidget-android.zip) or open [`packaging/android/web_visualizer/index.html`](packaging/android/web_visualizer/index.html) in mobile Chrome.
 2. Tap the browser menu **(⋮)** and select **"Add to Home screen"** or **"Install app"**.
 3. Launch FerroWidget directly from your Android app drawer. It functions completely offline!
 4. Tap **🎤 Mic** to react to ambient music, car audio, or speech.
@@ -296,4 +303,4 @@ pytest
 
 ## 📄 License
 
-Distributed under the [MIT License](https://opensource.org/licenses/MIT).
+Distributed under the [MIT License](LICENSE).

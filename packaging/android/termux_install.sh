@@ -14,6 +14,7 @@ python -m venv ~/ferrowidget_env
 source ~/ferrowidget_env/bin/activate
 pip install --upgrade pip
 pip install numpy moderngl tomli-w pillow
+pip install "https://raw.githubusercontent.com/sarkarpour/venom-dans/main/dist/ferrowidget-0.1.0-py3-none-any.whl"
 
 # 3. Create launch script
 cat << 'EOF' > ~/start_ferrowidget.sh
