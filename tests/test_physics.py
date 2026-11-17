@@ -95,3 +95,37 @@ def test_uniform_buffers_packing():
     assert blobs.dtype == np.float32
     assert magnets.shape == (19, 4)
     assert magnets.dtype == np.float32
+
+
+def test_droplet_tear_off_and_coalescence_lifecycle():
+    """Verify that droplets detach on audio/periodic excitation and subsequently re-attach."""
+    sim = FluidSimulation(seed=42, preset="club")
+    analyzer = AudioAnalyzer()
+    audio = generate_synthetic_audio("kick120", duration_sec=3.0)
+
+    hop_size = 512
+    dt_frame = 1.0 / 60.0
+
+    detached_history = []
+    coalescence_observed = False
+    prev_detached = set(np.where(sim.detached)[0])
+
+    for i in range(0, len(audio) - hop_size, hop_size):
+        chunk = audio[i : i + hop_size]
+        feat = analyzer.process_hop(chunk)
+        sim.update_choreography(feat, dt_frame)
+
+        curr_detached = set(np.where(sim.detached)[0])
+        detached_history.append(len(curr_detached))
+
+        # Check if any droplet that was detached has successfully coalesced back (detached -> attached)
+        re_attached = prev_detached - curr_detached
+        if len(re_attached) > 0:
+            coalescence_observed = True
+
+        prev_detached = curr_detached
+
+    # Must have active detached droplets during simulation
+    assert max(detached_history) > 0, "No droplets were ever detached"
+    # Must have observed coalescence (re-attaching back to the mother body)
+    assert coalescence_observed, "No droplet re-attachment (coalescence) was observed during 3s kick track"

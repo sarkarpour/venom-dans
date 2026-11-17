@@ -142,9 +142,9 @@ class FluidConfig:
     preset: str = "club"
     droplets: int = 64
     viscosity: float = 1.0
-    magnet_gain: float = 1.0
+    magnet_gain: float = 0.8
     kick_impulse: float = 1.0
-    spike_amount: float = 1.0
+    spike_amount: float = 0.35
     idle_breathing: bool = True
 
     def validate(self) -> None:
@@ -204,7 +204,7 @@ class LookConfig:
 @dataclass
 class PerfConfig:
     fps_cap: int = 60
-    idle_fps: int = 15
+    idle_fps: int = 60
     render_scale: float = 1.0
     mode: str = "heightfield"
 
