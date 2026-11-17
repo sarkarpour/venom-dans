@@ -15,7 +15,7 @@
 [![Direct Download](https://img.shields.io/badge/download-latest%20packages-brightgreen.svg?logo=powershell)](#-دانلود-مستقیم-و-ریلیزها-releases)
 [![Tests](https://img.shields.io/badge/tests-25%20passed-brightgreen.svg?logo=pytest)](https://github.com/sarkarpour/venom-dans/actions)
 [![Code Style](https://img.shields.io/badge/code%20style-ruff-000000.svg?logo=ruff)](https://github.com/astral-sh/ruff)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20Windows%20%7C%20Android-orange.svg)](#-دانلود-مستقیم-و-ریلیزها-releases)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg?logo=python)](https://www.python.org/downloads/)
 
@@ -307,6 +307,6 @@ pytest
 
 ## 📄 لایسنس
 
-این پروژه تحت لایسنس [MIT](LICENSE) منتشر شده است و استفاده از آن آزاد و رایگان می‌باشد.
+این پروژه تحت لایسنس [MIT](https://opensource.org/licenses/MIT) منتشر شده است و استفاده از آن آزاد و رایگان می‌باشد.
 
 </div>
