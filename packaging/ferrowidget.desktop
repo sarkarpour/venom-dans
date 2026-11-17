@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=FerroWidget
+GenericName=Desktop Ferrofluid Visualizer
+Comment=Photorealistic ferrofluid desktop audio visualizer reacting to system output
+Exec=ferrowidget run
+Icon=ferrowidget
+Terminal=false
+Categories=Utility;AudioVideo;
+StartupNotify=false
+X-GNOME-Autostart-Delay=5

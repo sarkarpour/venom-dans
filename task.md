@@ -1,41 +1,41 @@
 # FerroWidget Task Checklist
 
-- [ ] **Phase 0: Recon & Plan**
+- [x] **Phase 0: Recon & Plan**
   - [x] Environment recon (OS, Wayland/XWayland, Python 3.14, audio system)
   - [x] Local `.venv` setup with dependencies (`PySide6`, `moderngl`, `PyOpenGL`, `numpy`, `pillow`, `tomli-w`, `python-xlib`, `pytest`, `ruff`)
   - [x] Git repository initialization
   - [x] Initial `task.md`, `implementation_plan.md`, `docs/DECISIONS.md`
-- [ ] **Phase 1: Skeleton, Doctor, Config, IPC, Window**
-  - [ ] `pyproject.toml` definition & editable install
-  - [ ] `config.py` typed dataclasses, TOML comments, validation/clamping, hot-reload
-  - [ ] `x11.py` EWMH hints & XShape input-mask helpers
-  - [ ] `ipc.py` QLocalServer / QLocalSocket JSON-line protocol
-  - [ ] `window.py` frameless transparent GL window with LOCKED/EDIT modes & procedural tray icon
-  - [ ] `app.py` lifecycle, signal handling, `--exit-after` timer
-  - [ ] `cli.py` entry point & subcommands (`run`, `ctl`, `doctor`, `dump-frame`, `install-autostart`)
-  - [ ] Run `ferrowidget doctor` and verify output
-  - [ ] Run `pytest tests/test_config.py` and `pytest tests/test_cli_ipc.py`
-  - [ ] Verify `--exit-after 3` test run
-- [ ] **Phase 2: Audio Capture, DSP & Synthetic Signals**
-  - [ ] `audio/synthetic.py` (kick120, bass_sweep, noise_bursts, full_mix, silence)
-  - [ ] `audio/analysis.py` (Hann STFT, 32 log bands, pink tilt, AGC, flux onsets, beat tracker, immutable Features)
-  - [ ] `audio/capture.py` (parec/pw-record subprocess, pactl subscribe thread, exponential backoff, fallback)
-  - [ ] Run `pytest tests/test_dsp.py` (band accuracy, onset timing <= 1 hop, AGC +/-30dB invariant, hop time < 1 ms)
-- [ ] **Phase 3: Physics & Choreography**
-  - [ ] `physics/fluid.py` (64 droplets, 19 electromagnets, pairwise forces, curl noise, drag, spring ODEs, presets)
-  - [ ] Run `pytest tests/test_physics.py` (determinism, zero NaNs/Infs, bounded kinetic energy over 10 simulated minutes)
-- [ ] **Phase 4: Photorealistic Shader & Offscreen Contact Sheets**
-  - [ ] `render/shaders/ferro.vert` and `ferro.frag` (metaballs, analytic Rosensweig hex spikes, AA silhouette, 2.5D meniscus, HDR studio lighting, floor bounce, shadow, premultiplied alpha)
-  - [ ] `render/renderer.py` (Qt FBO integration, offscreen context, contact-sheet compositor)
-  - [ ] Run `pytest tests/test_render.py` (alpha boundaries, premultiplied invariant, theme switching)
-  - [ ] Run `ferrowidget dump-frame --contact-sheet`
-  - [ ] Inspect generated contact sheet images with image tool and visually critique
-- [ ] **Phase 5: Live Desktop Integration, Profiling & Polish**
-  - [ ] Test live run with `--exit-after 5`
-  - [ ] Test live interaction with `ferrowidget ctl` (edit mode toggle, theme change, preset switch)
-  - [ ] Profile CPU, memory, and confirm clean process termination
-- [ ] **Phase 6: Packaging, Stretch Features & Final Walkthrough**
-  - [ ] Implement `raymarch` 3D sphere-traced SDF mode & tempo-locked breathing
-  - [ ] Implement `packaging/` and `install-autostart`
-  - [ ] Complete `README.md` and `walkthrough.md` with visual artifacts
-  - [ ] Run complete test suite (`pytest`, `ruff check`)
+- [x] **Phase 1: Skeleton, Doctor, Config, IPC, Window**
+  - [x] `pyproject.toml` definition & editable install
+  - [x] `config.py` typed dataclasses, TOML comments, validation/clamping, hot-reload
+  - [x] `x11.py` EWMH hints & XShape input-mask helpers
+  - [x] `ipc.py` QLocalServer / QLocalSocket JSON-line protocol
+  - [x] `window.py` frameless transparent GL window with LOCKED/EDIT modes & procedural tray icon
+  - [x] `app.py` lifecycle, signal handling, `--exit-after` timer
+  - [x] `cli.py` entry point & subcommands (`run`, `ctl`, `doctor`, `dump-frame`, `install-autostart`)
+  - [x] Run `ferrowidget doctor` and verify output
+  - [x] Run `pytest tests/test_config.py` and `pytest tests/test_cli_ipc.py`
+  - [x] Verify `--exit-after 3` test run
+- [x] **Phase 2: Audio Capture, DSP & Synthetic Signals**
+  - [x] `audio/synthetic.py` (kick120, bass_sweep, noise_bursts, full_mix, silence)
+  - [x] `audio/analysis.py` (Hann STFT, 32 log bands, pink tilt, AGC, flux onsets, beat tracker, immutable Features)
+  - [x] `audio/capture.py` (parec/pw-record subprocess, pactl subscribe thread, exponential backoff, fallback)
+  - [x] Run `pytest tests/test_dsp.py` (band accuracy, onset timing <= 1 hop, AGC +/-30dB invariant, hop time < 1 ms)
+- [x] **Phase 3: Physics & Choreography**
+  - [x] `physics/fluid.py` (64 droplets, 19 electromagnets, pairwise forces, curl noise, drag, spring ODEs, presets)
+  - [x] Run `pytest tests/test_physics.py` (determinism, zero NaNs/Infs, bounded kinetic energy over 10 simulated minutes)
+- [x] **Phase 4: Photorealistic Shader & Offscreen Contact Sheets**
+  - [x] `render/shaders/ferro.vert` and `ferro.frag` (metaballs, analytic Rosensweig hex spikes, AA silhouette, 2.5D meniscus, HDR studio lighting, floor bounce, shadow, premultiplied alpha)
+  - [x] `render/renderer.py` (Qt FBO integration, offscreen context, contact-sheet compositor)
+  - [x] Run `pytest tests/test_render.py` (alpha boundaries, premultiplied invariant, theme switching)
+  - [x] Run `ferrowidget dump-frame --contact-sheet`
+  - [x] Inspect generated contact sheet images with image tool and visually critique
+- [x] **Phase 5: Live Desktop Integration, Profiling & Polish**
+  - [x] Test live run with `--exit-after 5`
+  - [x] Test live interaction with `ferrowidget ctl` (edit mode toggle, theme change, preset switch)
+  - [x] Profile CPU, memory, and confirm clean process termination
+- [x] **Phase 6: Packaging, Stretch Features & Final Walkthrough**
+  - [x] Implement `raymarch` 3D sphere-traced SDF mode & tempo-locked breathing
+  - [x] Implement `packaging/` and `install-autostart`
+  - [x] Complete `README.md` and `walkthrough.md` with visual artifacts
+  - [x] Run complete test suite (`pytest`, `ruff check`)
