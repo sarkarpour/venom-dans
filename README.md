@@ -1,12 +1,20 @@
-# FerroWidget 🧪✨
+<p align="center">
+  <a href="https://github.com/sarkarpour/venom-dans">
+    <img src="packaging/icons/ferrowidget.png" alt="FerroWidget Logo" width="130" height="130" />
+  </a>
+</p>
+
+<h1 align="center">FerroWidget 🧪✨</h1>
 
 <div align="center">
 
-[![Tests](https://img.shields.io/badge/tests-25%20passed-brightgreen.svg)]()
-[![Code Style](https://img.shields.io/badge/code%20style-ruff-000000.svg)]()
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)]()
-[![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20Windows%20%7C%20Android-orange.svg)]()
-[![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)]()
+[![Release](https://img.shields.io/badge/release-v0.1.0-blue.svg?logo=github)](https://github.com/sarkarpour/venom-dans/releases)
+[![Direct Download](https://img.shields.io/badge/download-latest%20packages-brightgreen.svg?logo=powershell)](#-releases--direct-downloads)
+[![Tests](https://img.shields.io/badge/tests-25%20passed-brightgreen.svg?logo=pytest)](https://github.com/sarkarpour/venom-dans/actions)
+[![Code Style](https://img.shields.io/badge/code%20style-ruff-000000.svg?logo=ruff)](https://github.com/astral-sh/ruff)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20Windows%20%7C%20Android-orange.svg)](#-releases--direct-downloads)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg?logo=python)](https://www.python.org/downloads/)
 
 **A photorealistic, glossy ferrofluid desktop widget dancing in real-time to your system audio.**  
 *Floating directly on your desktop with true per-pixel transparency (no window border, no background box).*
@@ -20,14 +28,47 @@
 
 </div>
 
-## 🎬 Visual Previews
+## 📥 Releases & Direct Downloads
 
-### Obsidian Liquid Across Multiple Backgrounds
-*Obsidian ferrofluid reacting across white, grey, pure black (with cyclorama floor bounce illumination), and colorful desktop wallpapers:*
+> [!TIP]
+> **Version 0.1.0 is ready!** Click any of the **Direct Download** buttons below to download the package directly to your computer, or visit the [GitHub Releases](https://github.com/sarkarpour/venom-dans/releases) page.
+
+| Platform / Target | Package | Version | Size | ⚡ 1-Click Direct Download | 📦 GitHub Release | Quick Install Command |
+|:---|:---:|:---:|:---:|:---:|:---:|:---|
+| **🐧 Linux (Debian / Ubuntu / Mint)** | `.deb` | `v0.1.0` | `~77 KB` | [**⬇️ Download `.deb`**](https://github.com/sarkarpour/venom-dans/raw/main/dist/ferrowidget_0.1.0_all.deb) | [Release Asset](https://github.com/sarkarpour/venom-dans/releases/tag/v0.1.0) | `sudo dpkg -i ferrowidget_0.1.0_all.deb` |
+| **🐧 Linux (Universal Distros)** | `.sh` | `v0.1.0` | `~2 KB` | [**⬇️ Download Installer**](https://github.com/sarkarpour/venom-dans/raw/main/packaging/linux/install_linux.sh) | [Release Asset](https://github.com/sarkarpour/venom-dans/releases/tag/v0.1.0) | `bash packaging/linux/install_linux.sh` |
+| **🪟 Windows (10 / 11)** | `.zip` | `v0.1.0` | `~160 KB` | [**⬇️ Download `.zip`**](https://github.com/sarkarpour/venom-dans/raw/main/dist/ferrowidget-windows.zip) | [Release Asset](https://github.com/sarkarpour/venom-dans/releases/tag/v0.1.0) | Extract & run `install_windows.bat` |
+| **🤖 Android (PWA / WebGL)** | `.zip` | `v0.1.0` | `~197 KB` | [**⬇️ Download `.zip`**](https://github.com/sarkarpour/venom-dans/raw/main/dist/ferrowidget-android.zip) | [Release Asset](https://github.com/sarkarpour/venom-dans/releases/tag/v0.1.0) | Open `index.html` → "Add to Home screen" |
+| **🐍 Python Wheel (Cross-Platform)** | `.whl` | `v0.1.0` | `~49 KB` | [**⬇️ Download `.whl`**](https://github.com/sarkarpour/venom-dans/raw/main/dist/ferrowidget-0.1.0-py3-none-any.whl) | [Release Asset](https://github.com/sarkarpour/venom-dans/releases/tag/v0.1.0) | `pip install ferrowidget-0.1.0-py3-none-any.whl` |
+
+### 🔐 Checksums (SHA-256)
+Verify file integrity after downloading:
+```text
+487b2a76905ab7cfc9f4e51aa087c2d68f780a3ff3d07faee35f88691a134224  ferrowidget_0.1.0_all.deb
+1aac380d3240744506f4467f7d3ccf592b873f6a903e41b58590d6afa7d46480  ferrowidget-windows.zip
+a03fdd71dc25823b85989236b8154a6cf8ac1633a6d9263bb788408646fbf05a  ferrowidget-android.zip
+f7321073a8c9529c83abace1b18794d62cbf9c7cb44e34453f6fd1b1436f7f31  ferrowidget-0.1.0-py3-none-any.whl
+```
+
+---
+
+## 🎬 Visual Previews & Screenshots
+
+### 1. Obsidian Liquid Across Multiple Backgrounds
+*Obsidian ferrofluid reacting across pure white, slate grey, pitch black (with cyclorama floor bounce illumination), and colorful desktop wallpapers:*
 
 ![Contact Sheet](dumped_frames/contact_sheet.png)
 
-### Visual Themes Gallery
+### 2. Audio-Reactive Dynamics & Physical Lifecycle
+*From calm organic idle swirl to dramatic bass transients, droplet pinch-off, and Rosensweig hexagonal spike formation:*
+
+![Audio Reactive Showcase](dumped_frames/audio_reactive_showcase.png)
+
+### 3. Visual Themes Showcase
+*Switch on-the-fly between 4 studio HDR visual themes:*
+
+![Themes Showcase](dumped_frames/themes_showcase.png)
+
 | Theme: Electric Neon | Theme: Rainbow Oilslick | Theme: Liquid Mercury |
 |:---:|:---:|:---:|
 | ![Neon](dumped_frames/neon/contact_sheet.png) | ![Oilslick](dumped_frames/oilslick/contact_sheet.png) | ![Mercury](dumped_frames/mercury/contact_sheet.png) |
@@ -53,36 +94,27 @@
 
 ---
 
-## 📦 Download & Installation
-
-Ready-to-install packages are located in the [`dist/`](dist/) folder:
-
-| Platform | Package File | Quick Install Command |
-|:---|:---|:---|
-| **🐧 Linux (Debian/Ubuntu)** | [`dist/ferrowidget_0.1.0_all.deb`](dist/ferrowidget_0.1.0_all.deb) | `sudo dpkg -i dist/ferrowidget_0.1.0_all.deb` |
-| **🐧 Linux (Any Distro)** | [`packaging/linux/install_linux.sh`](packaging/linux/install_linux.sh) | `bash packaging/linux/install_linux.sh` |
-| **🪟 Windows (10 / 11)** | [`dist/ferrowidget-windows.zip`](dist/ferrowidget-windows.zip) | Extract and double-click `install_windows.bat` |
-| **🤖 Android (PWA / APK)** | [`dist/ferrowidget-android.zip`](dist/ferrowidget-android.zip) | Open `web_visualizer/index.html` → "Add to Home screen" |
-
----
+## 📦 Installation Guide
 
 ### 1. Linux Setup
 
-#### Method A: Debian / Ubuntu Package (`.deb`)
+#### Method A: Debian / Ubuntu Package (`.deb`) — Recommended
+Download [`ferrowidget_0.1.0_all.deb`](https://github.com/sarkarpour/venom-dans/raw/main/dist/ferrowidget_0.1.0_all.deb) directly and install:
 ```bash
-sudo dpkg -i dist/ferrowidget_0.1.0_all.deb
-sudo apt install -f   # Installs dependencies if needed
+sudo dpkg -i ferrowidget_0.1.0_all.deb
+sudo apt install -f   # Installs system dependencies if needed
 ```
 
 #### Method B: One-Command Distro-Agnostic Installer
+Works across Arch Linux, Fedora, openSUSE, Manjaro, and any Linux distribution:
 ```bash
-bash packaging/linux/install_linux.sh
+curl -sSL https://raw.githubusercontent.com/sarkarpour/venom-dans/main/packaging/linux/install_linux.sh | bash
 ```
 
 #### Method C: Developer Virtual Environment
 ```bash
-git clone https://github.com/asa/ferrowidget.git
-cd ferrowidget
+git clone https://github.com/sarkarpour/venom-dans.git
+cd venom-dans
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .
@@ -92,9 +124,9 @@ pip install -e .
 
 ### 2. Windows Setup
 
-1. Install [Python 3.10+](https://www.python.org/downloads/) (check **"Add python.exe to PATH"**).
-2. Download and unzip [`dist/ferrowidget-windows.zip`](dist/ferrowidget-windows.zip) or clone the repository.
-3. Double-click `install_windows.bat`.
+1. Install [Python 3.10+](https://www.python.org/downloads/) (make sure to check **"Add python.exe to PATH"**).
+2. Download [`ferrowidget-windows.zip`](https://github.com/sarkarpour/venom-dans/raw/main/dist/ferrowidget-windows.zip) directly.
+3. Extract the ZIP file and double-click `install_windows.bat`.
 4. A desktop shortcut named **FerroWidget** will be created, and the widget will launch automatically in the background.
 
 *To build a single standalone `.exe` without Python installed on the target machine:*
@@ -111,7 +143,7 @@ The resulting executable is generated in `dist\ferrowidget.exe`.
 FerroWidget on Android runs via a hardware-accelerated WebGL 2.0 PWA with live microphone reactivity:
 
 #### Method A: Progressive Web App (PWA) — Recommended
-1. Open [`packaging/android/web_visualizer/index.html`](packaging/android/web_visualizer/index.html) in mobile Chrome.
+1. Download [`ferrowidget-android.zip`](https://github.com/sarkarpour/venom-dans/raw/main/dist/ferrowidget-android.zip) or open [`packaging/android/web_visualizer/index.html`](packaging/android/web_visualizer/index.html) in mobile Chrome.
 2. Tap the browser menu **(⋮)** and select **"Add to Home screen"** or **"Install app"**.
 3. Launch FerroWidget directly from your Android app drawer. It functions completely offline!
 4. Tap **🎤 Mic** to react to ambient music, car audio, or speech.
@@ -129,7 +161,7 @@ npx cap build android
 To run the full Python desktop app on Android:
 ```bash
 pkg install git curl
-curl -sSL https://raw.githubusercontent.com/asa/ferrowidget/main/packaging/android/termux_install.sh | bash
+curl -sSL https://raw.githubusercontent.com/sarkarpour/venom-dans/main/packaging/android/termux_install.sh | bash
 ```
 
 ---

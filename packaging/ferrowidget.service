@@ -1,6 +1,6 @@
 [Unit]
 Description=FerroWidget Desktop Audio Visualizer
-Documentation=https://github.com/asa/ferrowidget
+Documentation=https://github.com/sarkarpour/venom-dans
 After=graphical-session.target pipewire.service pulseaudio.service
 PartOf=graphical-session.target
 

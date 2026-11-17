@@ -2,7 +2,7 @@
 #define MyAppName "FerroWidget"
 #define MyAppVersion "0.1.0"
 #define MyAppPublisher "FerroWidget"
-#define MyAppURL "https://github.com/asa/ferrowidget"
+#define MyAppURL "https://github.com/sarkarpour/venom-dans"
 #define MyAppExeName "ferrowidget.exe"
 
 [Setup]

