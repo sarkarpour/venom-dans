@@ -18,23 +18,44 @@ logger = logging.getLogger(__name__)
 
 
 def get_default_monitor_source() -> Optional[str]:
-    """Query default sink and append .monitor."""
-    try:
-        proc = subprocess.run(
-            ["pactl", "get-default-sink"],
-            capture_output=True,
-            text=True,
-            timeout=1.5,
-            check=False,
-        )
-        if proc.returncode == 0:
-            sink = proc.stdout.strip()
-            if sink:
-                return f"{sink}.monitor"
-    except Exception as e:
-        logger.debug("Failed to query default sink via pactl: %s", e)
+    """Query default sink and append .monitor, with PipeWire fallback."""
+    # 1. Try pactl
+    if shutil.which("pactl"):
+        try:
+            proc = subprocess.run(
+                ["pactl", "get-default-sink"],
+                capture_output=True,
+                text=True,
+                timeout=1.0,
+                check=False,
+            )
+            if proc.returncode == 0:
+                sink = proc.stdout.strip()
+                if sink:
+                    return f"{sink}.monitor"
+        except Exception as e:
+            logger.debug("Failed to query default sink via pactl: %s", e)
 
-    # Check for PipeWire default monitor
+    # 2. Try wpctl (WirePlumber / PipeWire)
+    if shutil.which("wpctl"):
+        try:
+            proc = subprocess.run(
+                ["wpctl", "inspect", "@DEFAULT_AUDIO_SINK@"],
+                capture_output=True,
+                text=True,
+                timeout=1.0,
+                check=False,
+            )
+            if proc.returncode == 0:
+                for line in proc.stdout.splitlines():
+                    line = line.strip()
+                    if line.startswith("node.name ="):
+                        node_name = line.split("=", 1)[1].strip().strip('"')
+                        if node_name:
+                            return f"{node_name}.monitor"
+        except Exception as e:
+            logger.debug("Failed to query default sink via wpctl: %s", e)
+
     return "@DEFAULT_MONITOR@"
 
 
@@ -61,8 +82,10 @@ class AudioCaptureThread(threading.Thread):
         # Atomic reference swap for thread-safe access from GUI thread
         self._latest_features: Features = self.analyzer._make_default_features()
 
-        self._current_sink = ""
+        self._current_source = ""
         self._parec_proc: Optional[subprocess.Popen] = None
+        self._subscribe_proc: Optional[subprocess.Popen] = None
+        self._watcher_thread: Optional[threading.Thread] = None
 
     @property
     def latest_features(self) -> Features:
@@ -70,11 +93,20 @@ class AudioCaptureThread(threading.Thread):
         return self._latest_features
 
     def stop(self) -> None:
-        """Signal thread to cleanly terminate."""
+        """Signal thread and all child watcher subprocesses to cleanly terminate."""
         self._running.clear()
+
+        # Terminate capture process
         if self._parec_proc:
             try:
                 self._parec_proc.terminate()
+            except Exception:
+                pass
+
+        # Terminate subscriber watcher process
+        if self._subscribe_proc:
+            try:
+                self._subscribe_proc.terminate()
             except Exception:
                 pass
 
@@ -95,7 +127,86 @@ class AudioCaptureThread(threading.Thread):
         if self.synthetic_source:
             self._run_synthetic()
         else:
+            # Start background pactl subscribe watcher if source is "auto"
+            if self.source == "auto":
+                self._start_sink_watcher()
             self._run_live_capture()
+
+    def _start_sink_watcher(self) -> None:
+        """Spawn background watcher running pactl subscribe to detect sink changes."""
+        self._watcher_thread = threading.Thread(target=self._run_sink_watcher, name="SinkWatcherThread", daemon=True)
+        self._watcher_thread.start()
+
+    def _run_sink_watcher(self) -> None:
+        """Monitor pactl subscribe events for sink or server changes and restart parec if sink changes."""
+        has_pactl = shutil.which("pactl") is not None
+        if not has_pactl:
+            # Polling fallback via wpctl or pactl if pactl subscribe is unavailable
+            while self._running.is_set():
+                time.sleep(2.0)
+                if not self._running.is_set():
+                    break
+                new_src = get_default_monitor_source()
+                if new_src and self._current_source and new_src != self._current_source:
+                    logger.info("Default sink changed (polled): %s -> %s", self._current_source, new_src)
+                    if self._parec_proc:
+                        try:
+                            self._parec_proc.terminate()
+                        except Exception:
+                            pass
+            return
+
+        while self._running.is_set():
+            try:
+                self._subscribe_proc = subprocess.Popen(
+                    ["pactl", "subscribe"],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.DEVNULL,
+                    text=True,
+                    bufsize=1,
+                )
+                logger.info("Spawned pactl subscribe sink watcher (pid=%d)", self._subscribe_proc.pid)
+
+                while self._running.is_set():
+                    line = self._subscribe_proc.stdout.readline()
+                    if not line:
+                        break
+
+                    # Check for sink or server change events
+                    line_lower = line.lower()
+                    if "sink" in line_lower or "server" in line_lower:
+                        # Debounce slightly before querying default sink
+                        time.sleep(0.15)
+                        new_source = get_default_monitor_source()
+                        if new_source and self._current_source and new_source != self._current_source:
+                            logger.info(
+                                "Default sink change detected via pactl subscribe: %s -> %s. Restarting parec...",
+                                self._current_source,
+                                new_source,
+                            )
+                            # Terminating parec triggers the capture loop to restart with new source <= 2s
+                            if self._parec_proc:
+                                try:
+                                    self._parec_proc.terminate()
+                                except Exception:
+                                    pass
+
+            except Exception as e:
+                logger.debug("pactl subscribe watcher error: %s", e)
+            finally:
+                if self._subscribe_proc:
+                    try:
+                        self._subscribe_proc.terminate()
+                        self._subscribe_proc.wait(timeout=0.5)
+                    except Exception:
+                        try:
+                            self._subscribe_proc.kill()
+                        except Exception:
+                            pass
+                    self._subscribe_proc = None
+
+            if self._running.is_set():
+                time.sleep(1.0)
 
     def _run_synthetic(self) -> None:
         """Feed synthetic audio frames deterministically in real-time."""
@@ -160,6 +271,7 @@ class AudioCaptureThread(threading.Thread):
             target_source = self.source
             if target_source == "auto":
                 target_source = get_default_monitor_source() or "@DEFAULT_MONITOR@"
+            self._current_source = target_source
 
             cmd = []
             if has_parec:
@@ -173,8 +285,14 @@ class AudioCaptureThread(threading.Thread):
                     "--raw",
                 ]
             elif has_pw_record:
+                # Native PipeWire capture targeting the monitor of default audio sink in raw f32
                 cmd = [
                     "pw-record",
+                    "--target",
+                    "@DEFAULT_AUDIO_SINK@",
+                    "-P",
+                    '{"stream.capture.sink":true}',
+                    "--raw",
                     "--format=f32",
                     "--rate=48000",
                     "--channels=2",
@@ -189,7 +307,7 @@ class AudioCaptureThread(threading.Thread):
                     bufsize=bytes_per_hop * 4,
                 )
                 backoff_idx = 0  # reset on successful spawn
-                logger.info("Spawned audio capture process: %s", " ".join(cmd))
+                logger.info("Spawned audio capture process (pid=%d): %s", self._parec_proc.pid, " ".join(cmd))
 
                 while self._running.is_set() and not self._paused.is_set():
                     if self._parec_proc.poll() is not None:

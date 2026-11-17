@@ -1,11 +1,14 @@
-"""Integration tests for CLI entry points and Unix domain socket IPC."""
+"""Integration tests for CLI entry points, Unix domain socket IPC, and audio lifecycle."""
 
 import argparse
+import tempfile
 import time
+from pathlib import Path
 
 from PySide6.QtCore import QCoreApplication
 
-from ferrowidget.cli import cmd_doctor
+from ferrowidget.audio.capture import AudioCaptureThread, get_default_monitor_source
+from ferrowidget.cli import cmd_ctl, cmd_doctor, cmd_dump_frame
 from ferrowidget.ipc import IPCServer, send_ctl_command
 
 
@@ -14,6 +17,81 @@ def test_cli_doctor():
     args = argparse.Namespace()
     ret = cmd_doctor(args)
     assert ret == 0
+
+
+def test_monitor_source_resolution():
+    """Verify default monitor source can be resolved."""
+    src = get_default_monitor_source()
+    assert src is not None
+    assert isinstance(src, str)
+    assert len(src) > 0
+
+
+def test_cli_ctl_input_validation():
+    """Verify cmd_ctl cleanly handles invalid arguments without uncaught exceptions."""
+    # Size with non-integer string
+    args_bad_size = argparse.Namespace(command="size", args=["notanumber"])
+    assert cmd_ctl(args_bad_size) == 1
+
+    # Move with missing y
+    args_bad_move1 = argparse.Namespace(command="move", args=["100"])
+    assert cmd_ctl(args_bad_move1) == 1
+
+    # Move with non-integer y
+    args_bad_move2 = argparse.Namespace(command="move", args=["100", "invalid"])
+    assert cmd_ctl(args_bad_move2) == 1
+
+    # Theme with no theme name
+    args_bad_theme = argparse.Namespace(command="theme", args=[])
+    assert cmd_ctl(args_bad_theme) == 1
+
+
+def test_audio_capture_lifecycle_and_features():
+    """Verify AudioCaptureThread synthetic mode produces valid features and terminates cleanly."""
+    thread = AudioCaptureThread(synthetic_source="kick120")
+    thread.start()
+
+    time.sleep(0.3)
+    feat = thread.latest_features
+    assert feat is not None
+    assert len(feat.bands) == 32
+    assert not feat.is_silent
+
+    thread.stop()
+    thread.join(timeout=2.0)
+    assert not thread.is_alive()
+
+
+def test_dump_frame_all_eight_moments():
+    """Verify dump-frame creates all 8 key moments and contact sheet."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        args = argparse.Namespace(
+            synthetic="kick120",
+            frames=1,
+            seed=42,
+            out=tmpdir,
+            theme="ink",
+            contact_sheet=True,
+        )
+        ret = cmd_dump_frame(args)
+        assert ret == 0
+
+        out_path = Path(tmpdir)
+        expected_moments = [
+            "frame_idle.png",
+            "frame_steady_bass.png",
+            "frame_kick_0ms.png",
+            "frame_kick_50ms.png",
+            "frame_kick_120ms.png",
+            "frame_kick_250ms.png",
+            "frame_full_mix.png",
+            "frame_max_spikes.png",
+            "contact_sheet.png",
+        ]
+        for name in expected_moments:
+            f = out_path / name
+            assert f.exists(), f"Expected output {name} missing from dump-frame"
+            assert f.stat().st_size > 0, f"Output {name} is empty"
 
 
 def test_ipc_roundtrip():

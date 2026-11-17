@@ -91,17 +91,19 @@ vec3 linearToSRGB(vec3 color) {
     return pow(color, vec3(1.0 / 2.2));
 }
 
-// Procedural HDR Studio Environment
+// Procedural HDR Studio Environment with fwidth anti-aliased light box edges
 vec3 studioEnvironment(vec3 r, float edge_factor) {
     // 1. Key Softbox: Upper-left overhead (large rectangular area light)
     vec3 keyDir = normalize(vec3(-0.45, 0.65, 0.60));
     float keyDot = dot(r, keyDir);
-    float keySoftbox = smoothstep(0.82, 0.98, keyDot) * 3.8;
+    float fwKey = max(fwidth(keyDot), 0.004);
+    float keySoftbox = smoothstep(0.82 - fwKey, 0.98 + fwKey, keyDot) * 3.8;
 
     // 2. Strip Rim-Box: Upper-right edge
     vec3 rimDir = normalize(vec3(0.68, 0.52, 0.51));
     float rimDot = dot(r, rimDir);
-    float rimBox = smoothstep(0.89, 0.99, rimDot) * 2.6;
+    float fwRim = max(fwidth(rimDot), 0.004);
+    float rimBox = smoothstep(0.89 - fwRim, 0.99 + fwRim, rimDot) * 2.6;
 
     // 3. Pinpoint Spotlight: produces razor-sharp glossy glints
     vec3 spotDir = normalize(vec3(-0.15, 0.40, 0.90));
@@ -128,14 +130,11 @@ vec3 evalIridescence(float cosTheta, float thickness) {
 
 // 3D SDF for Raymarch Stretch Mode
 float sdfScene(vec3 p) {
-    float d = length(p.xy) - 0.5;
-    // Simple sphere-traced blend for droplets
     float minDist = 1e5;
     for (int i = 0; i < 64; ++i) {
         if (i >= uBlobCount) break;
         vec4 b = uBlobs[i];
         float dist = length(p - vec3(b.xy, 0.0)) - b.z;
-        // Polynomial smooth min
         float h = clamp(0.5 + 0.5 * (minDist - dist) / 0.12, 0.0, 1.0);
         minDist = mix(minDist, dist, h) - 0.12 * h * (1.0 - h);
     }
@@ -202,8 +201,8 @@ void main() {
         B += mag.z * exp(-d2 / 0.12);
     }
 
-    // Gate activation
-    float g = smoothstep(0.20, 0.70, B) * smoothstep(0.40 * ISO_T, 1.10 * ISO_T, f);
+    // Gate activation: gated by magnetic strength and fluid presence
+    float g = smoothstep(0.25, 0.80, B) * smoothstep(0.60 * ISO_T, 1.30 * ISO_T, f);
 
     // Hex lattice coordinate domain-warping
     float lambda = 0.085;
@@ -220,12 +219,13 @@ void main() {
     float s = 0.0;
     vec2 grad_s = vec2(0.0);
     if (d_s < rho) {
-        float q = 1.0 - d_s / rho;
-        s = q * q;
-        grad_s = -2.0 * q * (d_vec / max(d_s, 1e-5)) / rho;
+        // Smooth C1 Hermite falloff for rounded, glossy organic liquid crests (no sharp facets)
+        float q = clamp(1.0 - d_s / rho, 0.0, 1.0);
+        s = q * q * (3.0 - 2.0 * q);
+        grad_s = -6.0 * q * (1.0 - q) * (d_vec / max(d_s, 1e-5)) / rho;
     }
 
-    float A_spike = 0.42;
+    float A_spike = 0.12;
     float spike_disp = A_spike * uSpike * g * s;
     float f_total = f + spike_disp;
     vec2 grad_total = grad_f + A_spike * uSpike * (grad_s * g);
@@ -311,7 +311,7 @@ void main() {
 
     // 7. Premultiplied Alpha Output
     float final_alpha = clamp(alpha + shadow_alpha, 0.0, 1.0);
-    vec3 final_rgb = fluid_srgb * alpha; // Pure black shadow adds 0 to RGB
+    vec3 final_rgb = clamp(fluid_srgb * alpha, 0.0, final_alpha); // Guarantee 0 <= rgb <= alpha
 
     // 8. Edit Mode Visual Feedback
     if (uEditMode > 0.5) {

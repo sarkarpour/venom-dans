@@ -64,3 +64,18 @@ def test_save_and_reload_persistence():
         assert loaded.window.size == 512
         assert loaded.look.theme == "mercury"
         assert loaded.fluid.preset == "cinematic"
+
+
+def test_corrupted_type_resilience():
+    """Verify validation safely recovers from invalid types without crashing."""
+    cfg = AppConfig()
+    cfg.window.size = "invalid"  # type: ignore
+    cfg.window.margin = None  # type: ignore
+    cfg.audio.sensitivity = "bad_float"  # type: ignore
+    cfg.perf.fps_cap = []  # type: ignore
+
+    cfg.validate()
+    assert cfg.window.size == 420
+    assert cfg.window.margin == 40
+    assert cfg.audio.sensitivity == 1.0
+    assert cfg.perf.fps_cap == 60

@@ -101,13 +101,22 @@ class WindowConfig:
     margin: int = 40
 
     def validate(self) -> None:
-        self.size = max(128, min(1200, int(self.size)))
+        try:
+            self.size = max(128, min(1200, int(self.size)))
+        except (ValueError, TypeError):
+            self.size = 420
         if self.layer not in ("top", "normal", "bottom"):
             self.layer = "top"
         if self.anchor not in ("top-left", "top-right", "bottom-left", "bottom-right", "center"):
             self.anchor = "bottom-right"
-        self.margin = max(0, min(500, int(self.margin)))
-        self.opacity = max(0.1, min(1.0, float(self.opacity)))
+        try:
+            self.margin = max(0, min(500, int(self.margin)))
+        except (ValueError, TypeError):
+            self.margin = 40
+        try:
+            self.opacity = max(0.1, min(1.0, float(self.opacity)))
+        except (ValueError, TypeError):
+            self.opacity = 1.0
 
 
 @dataclass
@@ -118,8 +127,14 @@ class AudioConfig:
     agc: bool = True
 
     def validate(self) -> None:
-        self.sensitivity = max(0.1, min(10.0, float(self.sensitivity)))
-        self.visual_delay_ms = max(0, min(500, int(self.visual_delay_ms)))
+        try:
+            self.sensitivity = max(0.1, min(10.0, float(self.sensitivity)))
+        except (ValueError, TypeError):
+            self.sensitivity = 1.0
+        try:
+            self.visual_delay_ms = max(0, min(500, int(self.visual_delay_ms)))
+        except (ValueError, TypeError):
+            self.visual_delay_ms = 0
 
 
 @dataclass
@@ -135,11 +150,26 @@ class FluidConfig:
     def validate(self) -> None:
         if self.preset not in ("calm", "club", "cinematic"):
             self.preset = "club"
-        self.droplets = max(16, min(128, int(self.droplets)))
-        self.viscosity = max(0.1, min(5.0, float(self.viscosity)))
-        self.magnet_gain = max(0.1, min(5.0, float(self.magnet_gain)))
-        self.kick_impulse = max(0.1, min(5.0, float(self.kick_impulse)))
-        self.spike_amount = max(0.0, min(5.0, float(self.spike_amount)))
+        try:
+            self.droplets = max(16, min(128, int(self.droplets)))
+        except (ValueError, TypeError):
+            self.droplets = 64
+        try:
+            self.viscosity = max(0.1, min(5.0, float(self.viscosity)))
+        except (ValueError, TypeError):
+            self.viscosity = 1.0
+        try:
+            self.magnet_gain = max(0.1, min(5.0, float(self.magnet_gain)))
+        except (ValueError, TypeError):
+            self.magnet_gain = 1.0
+        try:
+            self.kick_impulse = max(0.1, min(5.0, float(self.kick_impulse)))
+        except (ValueError, TypeError):
+            self.kick_impulse = 1.0
+        try:
+            self.spike_amount = max(0.0, min(5.0, float(self.spike_amount)))
+        except (ValueError, TypeError):
+            self.spike_amount = 1.0
 
 
 @dataclass
@@ -153,10 +183,22 @@ class LookConfig:
     def validate(self) -> None:
         if self.theme not in ("ink", "mercury", "oilslick", "neon"):
             self.theme = "ink"
-        self.rim = max(0.0, min(2.0, float(self.rim)))
-        self.glints = max(0.0, min(3.0, float(self.glints)))
-        self.shadow = max(0.0, min(1.0, float(self.shadow)))
-        self.iridescence = max(0.0, min(1.0, float(self.iridescence)))
+        try:
+            self.rim = max(0.0, min(2.0, float(self.rim)))
+        except (ValueError, TypeError):
+            self.rim = 0.65
+        try:
+            self.glints = max(0.0, min(3.0, float(self.glints)))
+        except (ValueError, TypeError):
+            self.glints = 1.0
+        try:
+            self.shadow = max(0.0, min(1.0, float(self.shadow)))
+        except (ValueError, TypeError):
+            self.shadow = 0.22
+        try:
+            self.iridescence = max(0.0, min(1.0, float(self.iridescence)))
+        except (ValueError, TypeError):
+            self.iridescence = 0.0
 
 
 @dataclass
@@ -167,9 +209,18 @@ class PerfConfig:
     mode: str = "heightfield"
 
     def validate(self) -> None:
-        self.fps_cap = max(15, min(240, int(self.fps_cap)))
-        self.idle_fps = max(5, min(60, int(self.idle_fps)))
-        self.render_scale = max(0.5, min(2.0, float(self.render_scale)))
+        try:
+            self.fps_cap = max(15, min(240, int(self.fps_cap)))
+        except (ValueError, TypeError):
+            self.fps_cap = 60
+        try:
+            self.idle_fps = max(5, min(60, int(self.idle_fps)))
+        except (ValueError, TypeError):
+            self.idle_fps = 15
+        try:
+            self.render_scale = max(0.5, min(2.0, float(self.render_scale)))
+        except (ValueError, TypeError):
+            self.render_scale = 1.0
         if self.mode not in ("heightfield", "raymarch"):
             self.mode = "heightfield"
 

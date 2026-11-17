@@ -61,6 +61,8 @@ class FerroWindow(QOpenGLWidget):
         self.is_locked = self.config.window.locked
         self.renderer: Optional[FerroRenderer] = None
         self.ctx: Optional[moderngl.Context] = None
+        self._cached_qt_fbo: Optional[moderngl.Framebuffer] = None
+        self._cached_fbo_id: int = -1
 
         # Dragging state in edit mode
         self._dragging = False
@@ -137,6 +139,8 @@ class FerroWindow(QOpenGLWidget):
             logger.error("Failed to initialize OpenGL in FerroWindow: %s", e)
 
     def resizeGL(self, w: int, h: int) -> None:
+        self._cached_qt_fbo = None
+        self._cached_fbo_id = -1
         if self.ctx:
             dpr = self.devicePixelRatio()
             self.ctx.viewport = (0, 0, int(w * dpr), int(h * dpr))
@@ -162,21 +166,28 @@ class FerroWindow(QOpenGLWidget):
             beat_phase=0, is_silent=True
         )
 
-        # Adjust rendering rate if silent (idle fps)
-        if feat.is_silent and self.timer.interval() != int(1000.0 / self.config.perf.idle_fps):
-            self.timer.setInterval(max(10, int(1000.0 / self.config.perf.idle_fps)))
-        elif not feat.is_silent and self.timer.interval() != int(1000.0 / self.config.perf.fps_cap):
-            self._update_timer_interval()
+        # Maintain silky smooth frame rate (60 FPS in both active and idle)
+        target_fps = self.config.perf.idle_fps if (feat.is_silent and self.config.perf.idle_fps < self.config.perf.fps_cap) else self.config.perf.fps_cap
+        target_interval = max(4, int(1000.0 / target_fps))
+        if self.timer.interval() != target_interval:
+            self.timer.setInterval(target_interval)
 
         # Step physics on GUI thread
         self.sim.update_choreography(feat, dt)
 
-        # Detect and bind Qt's internal FBO
+        # Detect and bind Qt's internal FBO (cached to avoid per-frame GL queries)
         if self.ctx and self.renderer:
-            try:
-                qt_fbo = self.ctx.detect_framebuffer()
-            except Exception:
-                qt_fbo = None
+            fbo_id = self.defaultFramebufferObject()
+            if self._cached_qt_fbo is None or self._cached_fbo_id != fbo_id:
+                try:
+                    self._cached_qt_fbo = self.ctx.detect_framebuffer(fbo_id)
+                    self._cached_fbo_id = fbo_id
+                except Exception:
+                    try:
+                        self._cached_qt_fbo = self.ctx.detect_framebuffer()
+                        self._cached_fbo_id = fbo_id
+                    except Exception:
+                        self._cached_qt_fbo = None
 
             dpr = self.devicePixelRatio()
             render_scale = self.config.perf.render_scale
@@ -197,7 +208,7 @@ class FerroWindow(QOpenGLWidget):
                 debug_bg=self.debug_bg,
                 look_cfg=self.config.look,
                 perf_cfg=self.config.perf,
-                target_fbo=qt_fbo,
+                target_fbo=self._cached_qt_fbo,
             )
 
     def showEvent(self, event) -> None:
@@ -374,8 +385,8 @@ class FerroWindow(QOpenGLWidget):
         self._apply_native_x11_states()
         self.update()
 
-    def reload_config(self) -> None:
-        self.config = AppConfig.load()
+    def reload_config(self, config: Optional[AppConfig] = None) -> None:
+        self.config = config or AppConfig.load()
         self.sim._apply_preset_params(self.config.fluid.preset)
         self._apply_geometry_from_config()
         self._apply_native_x11_states()

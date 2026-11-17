@@ -57,13 +57,21 @@ def cmd_ctl(args: argparse.Namespace) -> int:
         if not cmd_args:
             print("Error: 'size' requires integer pixels (128-1200)")
             return 1
-        payload["size"] = int(cmd_args[0])
+        try:
+            payload["size"] = int(cmd_args[0])
+        except ValueError:
+            print(f"Error: Invalid size '{cmd_args[0]}', expected integer pixels", file=sys.stderr)
+            return 1
     elif cmd == "move":
         if len(cmd_args) < 2:
             print("Error: 'move' requires <x> <y> coordinates")
             return 1
-        payload["x"] = int(cmd_args[0])
-        payload["y"] = int(cmd_args[1])
+        try:
+            payload["x"] = int(cmd_args[0])
+            payload["y"] = int(cmd_args[1])
+        except ValueError:
+            print("Error: 'move' coordinates must be integers", file=sys.stderr)
+            return 1
 
     resp = send_ctl_command(cmd, payload)
     if resp.get("status") == "ok":
@@ -196,8 +204,23 @@ def cmd_dump_frame(args: argparse.Namespace) -> int:
     img_idle.save(out_dir / "frame_idle.png")
     moments_data.append(("idle", img_idle))
 
+    # 2. steady_bass: deep steady bass driving center & inner ring
+    bass_audio = generate_synthetic_audio("bass_sweep", duration_sec=1.5)
+    for b_idx in range(0, 48000, hop_size):
+        b_feat = analyzer.process_hop(bass_audio[b_idx : b_idx + hop_size])
+        sim.update_choreography(b_feat, dt_frame)
+    img_bass = renderer.render_offscreen_image(
+        width=512, height=512, time_sec=1.5,
+        blobs_data=sim.get_blobs_uniform_data(),
+        magnets_data=sim.get_magnets_uniform_data(),
+        spike_amount=sim.spike,
+        look_cfg=look,
+    )
+    img_bass.save(out_dir / "frame_steady_bass.png")
+    moments_data.append(("steady_bass", img_bass))
+
     # Advance simulation through audio to find kick hits
-    curr_time = 0.5
+    curr_time = 1.5
     kick_frame_idx = -1
 
     for i in range(0, len(audio) - hop_size, hop_size):
@@ -251,6 +274,22 @@ def cmd_dump_frame(args: argparse.Namespace) -> int:
                 img_k250.save(out_dir / "frame_kick_250ms.png")
                 moments_data.append(("kick_+250ms", img_k250))
                 break
+
+    # full_mix: full band spectrum driving inner/outer rings
+    mix_audio = generate_synthetic_audio("full_mix", duration_sec=2.0)
+    for m_idx in range(0, len(mix_audio) - hop_size, hop_size):
+        m_feat = analyzer.process_hop(mix_audio[m_idx : m_idx + hop_size])
+        curr_time += dt_frame
+        sim.update_choreography(m_feat, dt_frame)
+    img_full_mix = renderer.render_offscreen_image(
+        width=512, height=512, time_sec=curr_time,
+        blobs_data=sim.get_blobs_uniform_data(),
+        magnets_data=sim.get_magnets_uniform_data(),
+        spike_amount=sim.spike,
+        look_cfg=look,
+    )
+    img_full_mix.save(out_dir / "frame_full_mix.png")
+    moments_data.append(("full_mix", img_full_mix))
 
     # Max spikes frame
     sim.spike = 1.6

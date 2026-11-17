@@ -54,12 +54,23 @@ class AudioAnalyzer:
         self.filterbank = self._build_filterbank()
 
         # Pink noise tilt (+3 dB / octave above 250 Hz)
-        self.pink_tilt = 3.0 * np.log2(self.band_centers / 250.0).astype(np.float32)
+        self.pink_tilt = (3.0 * np.log2(self.band_centers / 250.0)).astype(np.float32)
 
         # AGC tracking state per band
         self.floor = np.full(self.num_bands, -60.0, dtype=np.float32)
         self.ceiling = np.full(self.num_bands, -20.0, dtype=np.float32)
         self.env_smooth = np.zeros(self.num_bands, dtype=np.float32)
+
+        # Precomputed filter smoothing coefficients
+        self.alpha_ceil_up = np.float32(1.0 - math.exp(-self.dt / 0.030))
+        self.alpha_ceil_down = np.float32(1.0 - math.exp(-self.dt / 4.50))
+        self.alpha_floor_down = np.float32(1.0 - math.exp(-self.dt / 0.030))
+        self.alpha_floor_up = np.float32(1.0 - math.exp(-self.dt / 4.50))
+        self.alpha_att = np.float32(1.0 - math.exp(-self.dt / 0.008))
+        self.alpha_rel = np.float32(1.0 - math.exp(-self.dt / 0.150))
+        self.decay_kick = math.exp(-self.dt / 0.120)
+        self.decay_snare = math.exp(-self.dt / 0.160)
+        self.decay_hat = math.exp(-self.dt / 0.060)
 
         # Filter band grouping masks
         self.mask_sub = (self.band_centers >= 30.0) & (self.band_centers < 60.0)
@@ -68,6 +79,13 @@ class AudioAnalyzer:
         self.mask_mid = (self.band_centers >= 500.0) & (self.band_centers < 2000.0)
         self.mask_highmid = (self.band_centers >= 2000.0) & (self.band_centers < 6000.0)
         self.mask_air = (self.band_centers >= 6000.0) & (self.band_centers <= 16000.0)
+
+        # Onset detection flux masks
+        self.mask_kick_flux = (self.band_centers >= 30.0) & (self.band_centers <= 150.0)
+        self.mask_snare_flux = ((self.band_centers >= 150.0) & (self.band_centers <= 400.0)) | (
+            (self.band_centers >= 2000.0) & (self.band_centers <= 8000.0)
+        )
+        self.mask_hat_flux = self.band_centers >= 6000.0
 
         # Onset detection states (kick, snare, hat)
         self.prev_band_db = np.full(self.num_bands, -80.0, dtype=np.float32)
@@ -78,6 +96,11 @@ class AudioAnalyzer:
         self.flux_history_snare = np.zeros(self.history_len, dtype=np.float32)
         self.flux_history_hat = np.zeros(self.history_len, dtype=np.float32)
         self.hist_idx = 0
+        self.hop_counter = 0
+
+        self.thresh_k = 10.0
+        self.thresh_s = 12.0
+        self.thresh_h = 8.0
 
         self.kick_env = 0.0
         self.snare_env = 0.0
@@ -128,7 +151,6 @@ class AudioAnalyzer:
             if total > 0.0:
                 fb[i] /= total
             else:
-                # Fallback to nearest bin
                 nearest = np.argmin(np.abs(self.freqs - self.band_centers[i]))
                 fb[i, nearest] = 1.0
 
@@ -162,6 +184,7 @@ class AudioAnalyzer:
     def process_hop(self, hop_samples: np.ndarray) -> Features:
         """Process 512 stereo samples (512, 2) in <= 1.0 ms and return Features."""
         self.current_time += self.dt
+        self.hop_counter += 1
 
         # 1. Stereo energy and balance
         left = hop_samples[:, 0]
@@ -181,12 +204,12 @@ class AudioAnalyzer:
             self.silent_duration = 0.0
         is_silent = self.silent_duration > 1.5
 
-        # 2. Mono mix & sliding STFT window
+        # 2. Mono mix & sliding STFT window (in-place ring buffer shift)
         mono = 0.5 * (left + right)
         self.input_ring[:-self.hop_size] = self.input_ring[self.hop_size:]
         self.input_ring[-self.hop_size:] = mono
 
-        self.fft_in[:] = self.input_ring * self.window
+        np.multiply(self.input_ring, self.window, out=self.fft_in)
         spec = np.fft.rfft(self.fft_in)
         power = (np.abs(spec) ** 2) / float(self.n_fft)
 
@@ -195,44 +218,22 @@ class AudioAnalyzer:
         band_db = 10.0 * np.log10(np.maximum(band_power, 1e-12))
         band_db_tilted = band_db + self.pink_tilt
 
-        # 4. Adaptive Gain Control (AGC)
-        # Floor: fast drop, slow rise (~4.5s)
-        # Ceiling: fast rise (~30ms), slow drop (~4.5s)
-        alpha_ceil_up = 1.0 - math.exp(-self.dt / 0.030)
-        alpha_ceil_down = 1.0 - math.exp(-self.dt / 4.50)
-        alpha_floor_down = 1.0 - math.exp(-self.dt / 0.030)
-        alpha_floor_up = 1.0 - math.exp(-self.dt / 4.50)
+        # 4. Adaptive Gain Control (AGC) - Fully Vectorized
+        ceil_up = band_db_tilted > self.ceiling
+        self.ceiling += np.where(ceil_up, self.alpha_ceil_up, self.alpha_ceil_down) * (band_db_tilted - self.ceiling)
 
-        for i in range(self.num_bands):
-            val = band_db_tilted[i]
-            # Ceiling tracking
-            if val > self.ceiling[i]:
-                self.ceiling[i] += alpha_ceil_up * (val - self.ceiling[i])
-            else:
-                self.ceiling[i] += alpha_ceil_down * (val - self.ceiling[i])
-
-            # Floor tracking
-            if val < self.floor[i]:
-                self.floor[i] += alpha_floor_down * (val - self.floor[i])
-            else:
-                self.floor[i] += alpha_floor_up * (val - self.floor[i])
+        floor_down = band_db_tilted < self.floor
+        self.floor += np.where(floor_down, self.alpha_floor_down, self.alpha_floor_up) * (band_db_tilted - self.floor)
 
         # Dynamic range span min 18 dB
         dyn_span = np.maximum(self.ceiling - self.floor, 18.0)
         norm_bands = np.clip((band_db_tilted - self.floor) / dyn_span, 0.0, 1.0)
-        # Gamma 1.3
         norm_bands = np.power(norm_bands, 1.3) * self.sensitivity
         norm_bands = np.clip(norm_bands, 0.0, 1.0)
 
-        # Envelope follower (attack 8 ms, release 150 ms)
-        alpha_att = 1.0 - math.exp(-self.dt / 0.008)
-        alpha_rel = 1.0 - math.exp(-self.dt / 0.150)
-        for i in range(self.num_bands):
-            nb = norm_bands[i]
-            if nb > self.env_smooth[i]:
-                self.env_smooth[i] += alpha_att * (nb - self.env_smooth[i])
-            else:
-                self.env_smooth[i] += alpha_rel * (nb - self.env_smooth[i])
+        # Envelope follower (attack 8 ms, release 150 ms) - Fully Vectorized
+        env_up = norm_bands > self.env_smooth
+        self.env_smooth += np.where(env_up, self.alpha_att, self.alpha_rel) * (norm_bands - self.env_smooth)
 
         # Aggregate band groups
         sub = float(np.mean(self.env_smooth[self.mask_sub]))
@@ -255,20 +256,9 @@ class AudioAnalyzer:
         flux_bands = np.maximum(0.0, band_db - self.prev_band_db)
         self.prev_band_db[:] = band_db
 
-        # Regions:
-        # Kick: 30-150 Hz
-        mask_kick_flux = (self.band_centers >= 30.0) & (self.band_centers <= 150.0)
-        flux_kick = float(np.sum(flux_bands[mask_kick_flux]))
-
-        # Snare: 150-400 Hz + 2000-8000 Hz
-        mask_snare_flux = ((self.band_centers >= 150.0) & (self.band_centers <= 400.0)) | (
-            (self.band_centers >= 2000.0) & (self.band_centers <= 8000.0)
-        )
-        flux_snare = float(np.sum(flux_bands[mask_snare_flux]))
-
-        # Hat: 6000-16000 Hz
-        mask_hat_flux = self.band_centers >= 6000.0
-        flux_hat = float(np.sum(flux_bands[mask_hat_flux]))
+        flux_kick = float(np.sum(flux_bands[self.mask_kick_flux]))
+        flux_snare = float(np.sum(flux_bands[self.mask_snare_flux]))
+        flux_hat = float(np.sum(flux_bands[self.mask_hat_flux]))
 
         # Record in history buffer
         self.flux_history_kick[self.hist_idx] = flux_kick
@@ -276,42 +266,44 @@ class AudioAnalyzer:
         self.flux_history_hat[self.hist_idx] = flux_hat
         self.hist_idx = (self.hist_idx + 1) % self.history_len
 
-        # Adaptive Threshold = median + k * MAD
+        # Adaptive Threshold = median + k * MAD (updated every 2 hops to reduce median overhead)
+        if self.hop_counter % 2 == 0:
+            med_k = float(np.median(self.flux_history_kick))
+            mad_k = float(np.median(np.abs(self.flux_history_kick - med_k)))
+            self.thresh_k = med_k + 2.2 * max(mad_k, 2.5)
+
+            med_s = float(np.median(self.flux_history_snare))
+            mad_s = float(np.median(np.abs(self.flux_history_snare - med_s)))
+            self.thresh_s = med_s + 2.4 * max(mad_s, 3.0)
+
+            med_h = float(np.median(self.flux_history_hat))
+            mad_h = float(np.median(np.abs(self.flux_history_hat - med_h)))
+            self.thresh_h = med_h + 2.0 * max(mad_h, 2.0)
+
         # 1. Kick onsets (refractory 90 ms, decay tau = 120 ms)
-        self.kick_env *= math.exp(-self.dt / 0.120)
-        med_k = float(np.median(self.flux_history_kick))
-        mad_k = float(np.median(np.abs(self.flux_history_kick - med_k)))
-        thresh_k = med_k + 2.2 * max(mad_k, 2.5)
-        if flux_kick > thresh_k and (self.current_time - self.last_kick_time) >= 0.090:
-            impulse = float(np.clip((flux_kick - thresh_k) / 12.0, 0.2, 1.0))
+        self.kick_env *= self.decay_kick
+        if flux_kick > self.thresh_k and (self.current_time - self.last_kick_time) >= 0.090:
+            impulse = float(np.clip((flux_kick - self.thresh_k) / 12.0, 0.2, 1.0))
             self.kick_env = min(1.0, self.kick_env + impulse)
             self.last_kick_time = self.current_time
 
         # 2. Snare onsets (refractory 100 ms, decay tau = 160 ms)
-        self.snare_env *= math.exp(-self.dt / 0.160)
-        med_s = float(np.median(self.flux_history_snare))
-        mad_s = float(np.median(np.abs(self.flux_history_snare - med_s)))
-        thresh_s = med_s + 2.4 * max(mad_s, 3.0)
-        if flux_snare > thresh_s and (self.current_time - self.last_snare_time) >= 0.100:
-            impulse = float(np.clip((flux_snare - thresh_s) / 15.0, 0.2, 1.0))
+        self.snare_env *= self.decay_snare
+        if flux_snare > self.thresh_s and (self.current_time - self.last_snare_time) >= 0.100:
+            impulse = float(np.clip((flux_snare - self.thresh_s) / 15.0, 0.2, 1.0))
             self.snare_env = min(1.0, self.snare_env + impulse)
             self.last_snare_time = self.current_time
 
         # 3. Hat onsets (refractory 50 ms, decay tau = 60 ms)
-        self.hat_env *= math.exp(-self.dt / 0.060)
-        med_h = float(np.median(self.flux_history_hat))
-        mad_h = float(np.median(np.abs(self.flux_history_hat - med_h)))
-        thresh_h = med_h + 2.0 * max(mad_h, 2.0)
-        if flux_hat > thresh_h and (self.current_time - self.last_hat_time) >= 0.050:
-            impulse = float(np.clip((flux_hat - thresh_h) / 10.0, 0.2, 1.0))
+        self.hat_env *= self.decay_hat
+        if flux_hat > self.thresh_h and (self.current_time - self.last_hat_time) >= 0.050:
+            impulse = float(np.clip((flux_hat - self.thresh_h) / 10.0, 0.2, 1.0))
             self.hat_env = min(1.0, self.hat_env + impulse)
             self.last_hat_time = self.current_time
 
         # 6. Continuous beat tracking
-        # Advance phase by tempo (120 BPM default = 2.0 Hz)
         self.beat_phase = (self.beat_phase + self.dt * (self.bpm / 60.0)) % 1.0
-        # Phase lock on clean kick hits
-        if flux_kick > thresh_k and self.kick_env > 0.6:
+        if flux_kick > self.thresh_k and self.kick_env > 0.6:
             self.beat_phase = 0.0
 
         feat = Features(

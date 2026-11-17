@@ -11,6 +11,7 @@ _xlib_available = False
 
 try:
     import Xlib.display
+    import Xlib.protocol.event
     import Xlib.X
     import Xlib.Xatom
     from Xlib.ext import shape
@@ -34,7 +35,7 @@ def get_x11_display():
 
 
 def apply_ewmh_hints(win_id: int, layer: str = "top") -> bool:
-    """Apply sticky, skip taskbar, skip pager, and layer hints to window."""
+    """Apply sticky, skip taskbar, skip pager, and layer hints to window via properties and ClientMessage."""
     d = get_x11_display()
     if d is None or win_id <= 0:
         return False
@@ -59,6 +60,19 @@ def apply_ewmh_hints(win_id: int, layer: str = "top") -> bool:
         net_wm_type = d.intern_atom("_NET_WM_WINDOW_TYPE")
         type_atom = [d.intern_atom("_NET_WM_WINDOW_TYPE_UTILITY")]
         w.change_property(net_wm_type, Xlib.Xatom.ATOM, 32, type_atom)
+
+        # For mapped windows under Mutter/GNOME, broadcast ClientMessage to root window
+        root = d.screen().root
+        for atom in state_atoms:
+            event = Xlib.protocol.event.ClientMessage(
+                window=w,
+                client_type=net_wm_state,
+                data=(32, [1, atom, 0, 1, 0]),  # 1 = _NET_WM_STATE_ADD
+            )
+            root.send_event(
+                event,
+                event_mask=Xlib.X.SubstructureRedirectMask | Xlib.X.SubstructureNotifyMask,
+            )
 
         d.sync()
         return True

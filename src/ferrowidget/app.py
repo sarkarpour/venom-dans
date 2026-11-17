@@ -134,7 +134,8 @@ class FerroApp:
 
     def _on_config_file_changed(self, path: str) -> None:
         logger.info("Config file changed on disk, reloading...")
-        self.window.reload_config()
+        self.config = AppConfig.load()
+        self.window.reload_config(self.config)
         # Re-add path in case file replacement broke the watch
         if os.path.exists(path):
             self.watcher.addPath(path)
@@ -150,6 +151,7 @@ class FerroApp:
                     self.window.set_locked(True)
                 else:  # toggle
                     self.window.set_locked(not self.window.is_locked)
+                self.config = self.window.config
                 return {"status": "ok", "locked": self.window.is_locked}
 
             elif cmd == "pause":
@@ -163,29 +165,34 @@ class FerroApp:
             elif cmd == "theme":
                 name = payload.get("name", "ink")
                 self.window.set_theme(name)
-                return {"status": "ok", "theme": self.config.look.theme}
+                self.config = self.window.config
+                return {"status": "ok", "theme": self.window.config.look.theme}
 
             elif cmd == "preset":
                 name = payload.get("name", "club")
                 self.window.set_preset(name)
-                return {"status": "ok", "preset": self.config.fluid.preset}
+                self.config = self.window.config
+                return {"status": "ok", "preset": self.window.config.fluid.preset}
 
             elif cmd == "size":
                 size = int(payload.get("size", 420))
                 self.window.set_size(size)
-                return {"status": "ok", "size": self.config.window.size}
+                self.config = self.window.config
+                return {"status": "ok", "size": self.window.config.window.size}
 
             elif cmd == "move":
                 x = int(payload.get("x", 0))
                 y = int(payload.get("y", 0))
                 self.window.move(x, y)
-                self.config.window.x = x
-                self.config.window.y = y
-                self.config.save()
+                self.window.config.window.x = x
+                self.window.config.window.y = y
+                self.window.config.save()
+                self.config = self.window.config
                 return {"status": "ok", "x": x, "y": y}
 
             elif cmd == "reload":
-                self.window.reload_config()
+                self.config = AppConfig.load()
+                self.window.reload_config(self.config)
                 return {"status": "ok", "message": "Config reloaded."}
 
             elif cmd == "status":
@@ -196,8 +203,8 @@ class FerroApp:
                     "locked": self.window.is_locked,
                     "geometry": {"x": geo.x(), "y": geo.y(), "w": geo.width(), "h": geo.height()},
                     "fps": round(self.window.fps_metric, 1),
-                    "theme": self.config.look.theme,
-                    "preset": self.config.fluid.preset,
+                    "theme": self.window.config.look.theme,
+                    "preset": self.window.config.fluid.preset,
                     "audio_silent": feat.is_silent,
                     "loudness": round(feat.loudness, 2),
                     "kick": round(feat.kick, 2),

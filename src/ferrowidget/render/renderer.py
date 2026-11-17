@@ -72,7 +72,6 @@ class FerroRenderer:
         self.program = self.ctx.program(vertex_shader=vert_code, fragment_shader=frag_code)
 
         # Fullscreen quad (2 triangles)
-        # Positions: [-1, -1], [1, -1], [-1, 1], [-1, 1], [1, -1], [1, 1]
         quad_verts = np.array(
             [
                 -1.0, -1.0,
@@ -87,6 +86,25 @@ class FerroRenderer:
         self.vbo = self.ctx.buffer(quad_verts.tobytes())
         self.vao = self.ctx.vertex_array(self.program, [(self.vbo, "2f", "inPosition")])
 
+        # Cache uniform handles to eliminate per-frame dictionary lookups
+        self.u_resolution = self.program.get("uResolution", None)
+        self.u_time = self.program.get("uTime", None)
+        self.u_blob_count = self.program.get("uBlobCount", None)
+        self.u_blobs = self.program.get("uBlobs", None)
+        self.u_magnets = self.program.get("uMagnets", None)
+        self.u_spike = self.program.get("uSpike", None)
+        self.u_env_rot = self.program.get("uEnvRot", None)
+        self.u_edit_mode = self.program.get("uEditMode", None)
+        self.u_debug_bg = self.program.get("uDebugBg", None)
+        self.u_render_mode = self.program.get("uRenderMode", None)
+        self.u_f0 = self.program.get("uF0", None)
+        self.u_body_color = self.program.get("uBodyColor", None)
+        self.u_rim_color = self.program.get("uRimColor", None)
+        self.u_rim_gain = self.program.get("uRimGain", None)
+        self.u_glint_gain = self.program.get("uGlintGain", None)
+        self.u_shadow_alpha = self.program.get("uShadowAlpha", None)
+        self.u_iridescence = self.program.get("uIridescence", None)
+
         # Cached offscreen FBO for headless rendering
         self._fbo: Optional[moderngl.Framebuffer] = None
         self._fbo_size: Tuple[int, int] = (0, 0)
@@ -96,8 +114,8 @@ class FerroRenderer:
         width: int,
         height: int,
         time_sec: float,
-        blobs_data: np.ndarray,      # (64, 4)
-        magnets_data: np.ndarray,    # (19, 4)
+        blobs_data: np.ndarray,      # (64, 4) float32
+        magnets_data: np.ndarray,    # (19, 4) float32
         spike_amount: float,
         edit_mode: bool = False,
         debug_bg: int = 0,
@@ -111,25 +129,29 @@ class FerroRenderer:
         self.ctx.viewport = (0, 0, width, height)
         self.ctx.clear(0.0, 0.0, 0.0, 0.0)
 
-        def set_uniform(name: str, val):
-            if name in self.program:
-                self.program[name].value = val
-
-        set_uniform("uResolution", (float(width), float(height)))
-        set_uniform("uTime", float(time_sec))
-        set_uniform("uBlobCount", int(len(blobs_data)))
-        if "uBlobs" in self.program:
-            self.program["uBlobs"].write(blobs_data.astype(np.float32).tobytes())
-        if "uMagnets" in self.program:
-            self.program["uMagnets"].write(magnets_data.astype(np.float32).tobytes())
-        set_uniform("uSpike", float(spike_amount))
-        set_uniform("uEnvRot", float((time_sec * 0.12) % (2.0 * np.pi)))
-        set_uniform("uEditMode", 1.0 if edit_mode else 0.0)
-        set_uniform("uDebugBg", int(debug_bg))
+        # Direct cached uniform assignments
+        if self.u_resolution is not None:
+            self.u_resolution.value = (float(width), float(height))
+        if self.u_time is not None:
+            self.u_time.value = float(time_sec)
+        if self.u_blob_count is not None:
+            self.u_blob_count.value = int(len(blobs_data))
+        if self.u_blobs is not None:
+            self.u_blobs.write(blobs_data.tobytes())
+        if self.u_magnets is not None:
+            self.u_magnets.write(magnets_data.tobytes())
+        if self.u_spike is not None:
+            self.u_spike.value = float(spike_amount)
+        if self.u_env_rot is not None:
+            self.u_env_rot.value = float((time_sec * 0.12) % (2.0 * np.pi))
+        if self.u_edit_mode is not None:
+            self.u_edit_mode.value = 1.0 if edit_mode else 0.0
+        if self.u_debug_bg is not None:
+            self.u_debug_bg.value = int(debug_bg)
 
         # Perf mode: 0 = heightfield, 1 = raymarch
-        mode_idx = 1 if (perf_cfg and perf_cfg.mode == "raymarch") else 0
-        set_uniform("uRenderMode", mode_idx)
+        if self.u_render_mode is not None:
+            self.u_render_mode.value = 1 if (perf_cfg and perf_cfg.mode == "raymarch") else 0
 
         # Theme uniforms
         theme_name = look_cfg.theme if look_cfg else "ink"
@@ -140,13 +162,20 @@ class FerroRenderer:
         shadow_mult = look_cfg.shadow if look_cfg else 0.22
         iri_mult = look_cfg.iridescence if look_cfg else 0.0
 
-        set_uniform("uF0", float(theme_params["f0"]))
-        set_uniform("uBodyColor", theme_params["body_color"])
-        set_uniform("uRimColor", theme_params["rim_color"])
-        set_uniform("uRimGain", float(theme_params["rim_gain"] * rim_mult))
-        set_uniform("uGlintGain", float(theme_params["glint_gain"] * glints_mult))
-        set_uniform("uShadowAlpha", float(theme_params["shadow_alpha"] * shadow_mult))
-        set_uniform("uIridescence", float(max(theme_params["iridescence"], iri_mult)))
+        if self.u_f0 is not None:
+            self.u_f0.value = float(theme_params["f0"])
+        if self.u_body_color is not None:
+            self.u_body_color.value = theme_params["body_color"]
+        if self.u_rim_color is not None:
+            self.u_rim_color.value = theme_params["rim_color"]
+        if self.u_rim_gain is not None:
+            self.u_rim_gain.value = float(theme_params["rim_gain"] * rim_mult)
+        if self.u_glint_gain is not None:
+            self.u_glint_gain.value = float(theme_params["glint_gain"] * glints_mult)
+        if self.u_shadow_alpha is not None:
+            self.u_shadow_alpha.value = float(theme_params["shadow_alpha"] * shadow_mult)
+        if self.u_iridescence is not None:
+            self.u_iridescence.value = float(max(theme_params["iridescence"], iri_mult))
 
         # Render fullscreen quad
         self.vao.render(moderngl.TRIANGLES)
@@ -187,7 +216,6 @@ class FerroRenderer:
         )
 
         raw_data = self._fbo.read(components=4)
-        # OpenGL textures are vertically flipped relative to PIL image coordinates
         img = Image.frombytes("RGBA", (width, height), raw_data).transpose(Image.FLIP_TOP_BOTTOM)
         return img
 
@@ -235,7 +263,6 @@ def create_contact_sheet(
         elif bg == "pure-black":
             bg_img = Image.new("RGBA", (cell_size, cell_size), (0, 0, 0, 255))
         else:  # "busy-wallpaper-gradient"
-            # High-contrast vibrant gradient pattern
             arr = np.zeros((cell_size, cell_size, 4), dtype=np.uint8)
             y_coords, x_coords = np.mgrid[0:cell_size, 0:cell_size]
             arr[:, :, 0] = (20 + 200 * (x_coords / cell_size)).astype(np.uint8)
@@ -248,17 +275,13 @@ def create_contact_sheet(
     # Grid composition
     for r, bg in enumerate(backgrounds):
         y = header_height + col_header_height + r * (cell_size + padding)
-        # Row label
         draw.text((padding + 8, y + cell_size // 2 - 10), f"Bg: {bg}", fill=(210, 215, 225))
 
         for c, (_, fluid_img) in enumerate(moments):
             x = row_label_width + c * (cell_size + padding)
             resized_fluid = fluid_img.resize((cell_size, cell_size), Image.Resampling.LANCZOS)
-
-            # Alpha composite premultiplied or standard RGBA
             cell_bg = bg_images[bg].copy()
             cell_bg.alpha_composite(resized_fluid)
-
             sheet.paste(cell_bg.convert("RGB"), (x, y))
 
     return sheet
