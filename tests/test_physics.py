@@ -129,3 +129,31 @@ def test_droplet_tear_off_and_coalescence_lifecycle():
     assert max(detached_history) > 0, "No droplets were ever detached"
     # Must have observed coalescence (re-attaching back to the mother body)
     assert coalescence_observed, "No droplet re-attachment (coalescence) was observed during 3s kick track"
+
+
+def test_boundary_envelope_and_core_anchoring():
+    """Verify that the fluid core remains centered and all droplet envelopes stay well inside window."""
+    sim = FluidSimulation(seed=99, preset="club")
+    analyzer = AudioAnalyzer()
+    audio = generate_synthetic_audio("full_mix", duration_sec=5.0)
+
+    hop_size = 512
+    dt_frame = 1.0 / 60.0
+
+    for i in range(0, len(audio) - hop_size, hop_size):
+        chunk = audio[i : i + hop_size]
+        feat = analyzer.process_hop(chunk)
+        sim.update_choreography(feat, dt_frame)
+
+        # 1. Mother puddle center of mass must remain stably anchored near (0, 0)
+        p_core = np.mean(sim.pos[:sim.n_core], axis=0)
+        core_offset = np.linalg.norm(p_core)
+        assert core_offset < 0.20, f"Mother puddle drifted too far: offset={core_offset:.4f}"
+
+        # 2. Maximum droplet position center must never reach 0.80
+        pos_dist = np.linalg.norm(sim.pos, axis=1)
+        assert np.all(pos_dist < 0.80), f"Droplet center exceeded 0.80: max={np.max(pos_dist):.4f}"
+
+        # 3. Outer potential reach (r_center + r * support_scale) must remain < 0.86 (window edge is 1.0)
+        envelope = pos_dist + sim.r * sim.support_scale
+        assert np.all(envelope < 0.86), f"Droplet metaball envelope reached window perimeter: max={np.max(envelope):.4f}"

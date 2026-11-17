@@ -55,6 +55,12 @@ def test_alpha_boundary_and_premultiplied_invariants():
     for ca in corner_alphas:
         assert ca == 0.0, f"Corner alpha expected 0.0, got {ca}"
 
+    # Entire window perimeter edges must be strictly transparent (no square boundary clipping)
+    assert np.all(a[0, :] == 0.0), f"Top edge has non-zero alpha: max={a[0, :].max()}"
+    assert np.all(a[-1, :] == 0.0), f"Bottom edge has non-zero alpha: max={a[-1, :].max()}"
+    assert np.all(a[:, 0] == 0.0), f"Left edge has non-zero alpha: max={a[:, 0].max()}"
+    assert np.all(a[:, -1] == 0.0), f"Right edge has non-zero alpha: max={a[:, -1].max()}"
+
     # Center pixels must contain fluid
     center_alpha = a[128, 128]
     assert center_alpha > 0.5, f"Center alpha expected > 0.5, got {center_alpha}"

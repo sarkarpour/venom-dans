@@ -92,7 +92,8 @@ class FluidSimulation:
         self.prev_hat = 0.0
 
         # Boundary confinement
-        self.boundary_r = 0.92
+        self.boundary_r = 0.76
+        self.support_scale = 1.840202
 
         # Initialize droplet hierarchy
         self._init_droplets()
@@ -180,7 +181,7 @@ class FluidSimulation:
             self.target_flight_time[idx] = float(self.rng.uniform(1.8, 3.2))
             self.detach_timer[idx] = float(self.rng.uniform(0.2, 1.2))
             angle = float(self.rng.uniform(0, 2 * math.pi))
-            dist = float(self.rng.uniform(0.38, 0.68))
+            dist = float(self.rng.uniform(0.30, 0.50))
             self.pos[idx] = [dist * math.cos(angle), dist * math.sin(angle)]
 
     def update_choreography(self, feat: Features, delta_seconds: float) -> None:
@@ -191,14 +192,14 @@ class FluidSimulation:
         # Check for impulse triggers on positive edges
         kick_jump = max(0.0, feat.kick - self.prev_kick)
         snare_jump = max(0.0, feat.snare - self.prev_snare)
-        hat_jump = max(0.0, feat.hat - self.prev_hat)
+        _hat_jump = max(0.0, feat.hat - self.prev_hat)
         self.prev_kick = feat.kick
         self.prev_snare = feat.snare
         self.prev_hat = feat.hat
 
         # Update magnets based on audio bands
-        # Center magnet: gentle so it does not collapse separate droplets into one solid ball
-        self.magnet_str[0] = (0.22 * feat.sub + 0.18 * feat.kick) * self.magnet_gain
+        # Center magnet: steady baseline anchor keeping mother mass centered, plus audio reactivity
+        self.magnet_str[0] = (0.65 + 0.35 * feat.sub + 0.25 * feat.kick) * self.magnet_gain
 
         # Continuous rotation of outer ring sector mapping: 2*pi / 90.0 rad/s
         rot_angle = (2.0 * math.pi / 90.0) * self.time
@@ -347,6 +348,11 @@ class FluidSimulation:
         self.detach_timer[self.detached] += dt
         p_core = np.mean(self.pos[:self.n_core], axis=0)
 
+        # Core Mass Centering: pull mother puddle towards (0, 0) to prevent wandering to window edges
+        d_pcore = float(np.linalg.norm(p_core))
+        if d_pcore > 0.01:
+            self.forces[:self.n_core] -= 4.5 * p_core
+
         # 3. Fully Vectorized Droplet Flight, Restoring Spring, Coalescence ("دوباره بچسبه"), and Perimeter Tether
         rel = self.pos[self.n_core:] - p_core  # shape (58, 2)
         dist_c = np.sqrt(rel[:, 0]**2 + rel[:, 1]**2) + 1e-5
@@ -479,6 +485,22 @@ class FluidSimulation:
         self.forces[:, 0] += curl_x * curl_scale
         self.forces[:, 1] += curl_y * curl_scale
 
+        # 6.5. Progressive inward boundary cushion: smoothly decelerate droplets approaching chamber edge
+        safe_chamber_r = 0.80
+        max_r_center = np.maximum(0.35, safe_chamber_r - self.r * self.support_scale)
+        pos_dist_cur = np.sqrt(self.pos[:, 0]**2 + self.pos[:, 1]**2)
+        cushion_zone = 0.12
+        soft_r = np.maximum(0.20, max_r_center - cushion_zone)
+        cush_mask = pos_dist_cur > soft_r
+        if np.any(cush_mask):
+            inv_p = 1.0 / np.maximum(pos_dist_cur, 1e-5)
+            nx = self.pos[:, 0] * inv_p
+            ny = self.pos[:, 1] * inv_p
+            cush_ratio = np.clip((pos_dist_cur - soft_r) / cushion_zone, 0.0, 1.0)
+            f_cush = -5.5 * (cush_ratio**1.5)
+            self.forces[:, 0] += np.where(cush_mask, f_cush * nx, 0.0)
+            self.forces[:, 1] += np.where(cush_mask, f_cush * ny, 0.0)
+
         # 7. Viscous drag: -c_drag * v
         c_drag = 2.4 * self.viscosity
         self.forces -= c_drag * self.vel
@@ -492,22 +514,22 @@ class FluidSimulation:
 
         self.pos += self.vel * dt
 
-        # 9. Boundary wall confinement (radius 0.92) - Vectorized
+        # 9. Boundary chamber confinement (guarantees zero window-edge clipping) - Vectorized
         pos_dist = np.sqrt(self.pos[:, 0]**2 + self.pos[:, 1]**2)
-        wall_mask = pos_dist > self.boundary_r
+        wall_mask = pos_dist > max_r_center
         if np.any(wall_mask):
             inv_pdist = 1.0 / np.maximum(pos_dist, 1e-5)
             norm_x = self.pos[:, 0] * inv_pdist
             norm_y = self.pos[:, 1] * inv_pdist
-            penetration = np.maximum(0.0, pos_dist - self.boundary_r)
+            penetration = np.maximum(0.0, pos_dist - max_r_center)
 
             self.pos[:, 0] -= norm_x * penetration
             self.pos[:, 1] -= norm_y * penetration
 
             v_dot_n = self.vel[:, 0] * norm_x + self.vel[:, 1] * norm_y
             reflect_mask = wall_mask & (v_dot_n > 0.0)
-            self.vel[:, 0] -= np.where(reflect_mask, 1.20 * v_dot_n * norm_x, 0.0)
-            self.vel[:, 1] -= np.where(reflect_mask, 1.20 * v_dot_n * norm_y, 0.0)
+            self.vel[:, 0] -= np.where(reflect_mask, 1.25 * v_dot_n * norm_x, 0.0)
+            self.vel[:, 1] -= np.where(reflect_mask, 1.25 * v_dot_n * norm_y, 0.0)
 
     def get_blobs_uniform_data(self) -> np.ndarray:
         """Return preallocated float32 array of shape (64, 4) for GLSL uBlobs: vec4(x, y, r, weight)."""

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import sys
 import time
 from typing import Optional
 
@@ -223,6 +224,8 @@ class FerroWindow(QOpenGLWidget):
 
     def _apply_native_x11_states(self) -> None:
         """Apply EWMH sticky/layer hints and XShape click-through mask."""
+        if not sys.platform.startswith("linux"):
+            return
         win_id = int(self.winId())
         if win_id <= 0:
             return

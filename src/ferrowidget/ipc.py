@@ -15,7 +15,9 @@ logger = logging.getLogger(__name__)
 
 
 def get_socket_path() -> str:
-    """Return runtime socket path in XDG_RUNTIME_DIR or /tmp."""
+    """Return runtime socket path in XDG_RUNTIME_DIR or /tmp (or local pipe name on Windows)."""
+    if os.name == "nt":
+        return "ferrowidget_pipe"
     runtime_dir = os.environ.get("XDG_RUNTIME_DIR")
     if runtime_dir and os.path.isdir(runtime_dir):
         return os.path.join(runtime_dir, "ferrowidget.sock")

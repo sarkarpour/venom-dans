@@ -112,7 +112,7 @@ vec3 studioEnvironment(vec3 r, float edge_factor) {
 
     // 4. Studio Cyclorama Floor Bounce: illuminates the steep outer meniscus edge
     // Gated by edge_factor so only the perimeter silhouette is illuminated on black backgrounds
-    float floorBounce = smoothstep(0.15, -0.40, r.z) * edge_factor;
+    float floorBounce = (1.0 - smoothstep(-0.40, 0.15, r.z)) * edge_factor;
     vec3 floorColor = vec3(0.40, 0.43, 0.46) * 2.2;
 
     // Deep obsidian ambient
@@ -176,7 +176,9 @@ void main() {
             vec3 envRad = studioEnvironment(ref, 1.0);
             vec3 col = uBodyColor + envRad * uF0 * uGlintGain;
             vec3 srgb = linearToSRGB(tonemapACES(col));
-            fragColor = vec4(srgb, 1.0);
+            float r_screen = length(p);
+            float edge_guard = 1.0 - smoothstep(0.82, 0.92, r_screen);
+            fragColor = vec4(srgb * edge_guard, 1.0 * edge_guard);
             return;
         } else {
             fragColor = vec4(0.0);
@@ -273,7 +275,7 @@ void main() {
     float F = uF0 + (1.0 - uF0) * pow(1.0 - NdotV, 5.0);
 
     // Outer perimeter edge factor for rim lighting & floor bounce
-    float edge_factor = smoothstep(1.75 * ISO_T, 1.0 * ISO_T, f_total);
+    float edge_factor = 1.0 - smoothstep(1.0 * ISO_T, 1.75 * ISO_T, f_total);
 
     // Sample Studio HDR environment
     vec3 envRadiance = studioEnvironment(r_rot, edge_factor);
@@ -313,10 +315,17 @@ void main() {
     float final_alpha = clamp(alpha + shadow_alpha, 0.0, 1.0);
     vec3 final_rgb = clamp(fluid_srgb * alpha, 0.0, final_alpha); // Guarantee 0 <= rgb <= alpha
 
+    // Circular containment falloff: guarantee zero alpha before reaching the quad edges
+    // Completely eliminates straight-line clipping or visible square boundaries
+    float r_screen = length(p);
+    float edge_guard = 1.0 - smoothstep(0.82, 0.92, r_screen);
+    final_alpha *= edge_guard;
+    final_rgb *= edge_guard;
+
     // 8. Edit Mode Visual Feedback
     if (uEditMode > 0.5) {
         float r_dist = length(p);
-        float ring = abs(r_dist - 0.92);
+        float ring = abs(r_dist - 0.82);
         float dash = sin(atan(p.y, p.x) * 24.0);
         if (ring < 0.008 && dash > 0.0) {
             vec3 editRingColor = vec3(0.3, 0.8, 1.0);

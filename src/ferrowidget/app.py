@@ -53,11 +53,12 @@ class FerroApp:
         override_size: Optional[int] = None,
         override_anchor: Optional[str] = None,
     ):
-        # Platform selection: enforce X11/xcb on GNOME/Wayland by default
-        if not wayland_native and "QT_QPA_PLATFORM" not in os.environ:
-            os.environ["QT_QPA_PLATFORM"] = "xcb"
-        if "QT_XCB_GL_INTEGRATION" not in os.environ:
-            os.environ["QT_XCB_GL_INTEGRATION"] = "xcb_egl"
+        # Platform selection: enforce X11/xcb on Linux by default
+        if sys.platform.startswith("linux"):
+            if not wayland_native and "QT_QPA_PLATFORM" not in os.environ:
+                os.environ["QT_QPA_PLATFORM"] = "xcb"
+            if "QT_XCB_GL_INTEGRATION" not in os.environ:
+                os.environ["QT_XCB_GL_INTEGRATION"] = "xcb_egl"
 
         setup_surface_format()
 
