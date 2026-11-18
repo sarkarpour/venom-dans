@@ -144,7 +144,10 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     gl_info = "Unavailable"
     try:
         import moderngl
-        ctx = moderngl.create_standalone_context()
+        try:
+            ctx = moderngl.create_context()
+        except Exception:
+            ctx = moderngl.create_standalone_context()
         gl_status = "PASS"
         gl_info = f"{ctx.info.get('GL_RENDERER', 'GL')} (OpenGL {ctx.version_code / 100:.1f})"
     except Exception as e:

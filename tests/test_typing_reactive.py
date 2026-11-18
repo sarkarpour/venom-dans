@@ -143,3 +143,5 @@ def test_ferro_window_typing_and_mic_toggles():
     finally:
         win.cleanup()
         win.close()
+        win.deleteLater()
+        _app.processEvents()
