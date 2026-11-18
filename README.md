@@ -36,19 +36,19 @@
 
 | Platform / Target | Package | Version | Size | ⚡ 1-Click Direct Download | Quick Install Command |
 |:---|:---:|:---:|:---:|:---:|:---|
-| **🐧 Linux (Debian / Ubuntu / Mint)** | `.deb` | `v0.1.0` | `~77 KB` | [**⬇️ Download `.deb`**](https://raw.githubusercontent.com/sarkarpour/venom-dans/main/dist/ferrowidget_0.1.0_all.deb) | `sudo dpkg -i ferrowidget_0.1.0_all.deb` |
-| **🐧 Linux (Universal Distros)** | `.tar.gz` | `v0.1.0` | `~95 KB` | [**⬇️ Download `.tar.gz`**](https://raw.githubusercontent.com/sarkarpour/venom-dans/main/dist/ferrowidget-linux.tar.gz) | `tar -xzf ferrowidget-linux.tar.gz && bash install_linux.sh` |
+| **🐧 Linux (Debian / Ubuntu / Mint)** | `.deb` | `v0.1.0` | `~127 KB` | [**⬇️ Download `.deb`**](https://raw.githubusercontent.com/sarkarpour/venom-dans/main/dist/ferrowidget_0.1.0_all.deb) | `sudo dpkg -i ferrowidget_0.1.0_all.deb` |
+| **🐧 Linux (Universal Distros)** | `.tar.gz` | `v0.1.0` | `~91 KB` | [**⬇️ Download `.tar.gz`**](https://raw.githubusercontent.com/sarkarpour/venom-dans/main/dist/ferrowidget-linux.tar.gz) | `tar -xzf ferrowidget-linux.tar.gz && bash install_linux.sh` |
 | **🪟 Windows (10 / 11)** | `.zip` | `v0.1.0` | `~160 KB` | [**⬇️ Download `.zip`**](https://raw.githubusercontent.com/sarkarpour/venom-dans/main/dist/ferrowidget-windows.zip) | Extract & run `install_windows.bat` |
-| **🤖 Android (PWA / WebGL)** | `.zip` | `v0.1.0` | `~197 KB` | [**⬇️ Download `.zip`**](https://raw.githubusercontent.com/sarkarpour/venom-dans/main/dist/ferrowidget-android.zip) | Open `index.html` → "Add to Home screen" |
+| **🤖 Android (PWA / WebGL)** | `.zip` | `v0.1.0` | `~204 KB` | [**⬇️ Download `.zip`**](https://raw.githubusercontent.com/sarkarpour/venom-dans/main/dist/ferrowidget-android.zip) | Open `index.html` → "Add to Home screen" |
 | **🐍 Python Wheel (Cross-Platform)** | `.whl` | `v0.1.0` | `~49 KB` | [**⬇️ Download `.whl`**](https://raw.githubusercontent.com/sarkarpour/venom-dans/main/dist/ferrowidget-0.1.0-py3-none-any.whl) | `pip install ferrowidget-0.1.0-py3-none-any.whl` |
 
 ### 🔐 Checksums (SHA-256)
 Verify file integrity after downloading:
 ```text
-487b2a76905ab7cfc9f4e51aa087c2d68f780a3ff3d07faee35f88691a134224  ferrowidget_0.1.0_all.deb
-9b8f2d61a31d0ec78374617fc31a484d252ffc8d93616185d481f3047aa9df83  ferrowidget-linux.tar.gz
+54c547a0db8247c68103706f1d60f8956b6bc082b76075cc712196f7a827aa49  ferrowidget_0.1.0_all.deb
+740cb74f02fb9058edbfa4984199173d396ce5174b90e10c07428b1a4cba6327  ferrowidget-linux.tar.gz
 1aac380d3240744506f4467f7d3ccf592b873f6a903e41b58590d6afa7d46480  ferrowidget-windows.zip
-a03fdd71dc25823b85989236b8154a6cf8ac1633a6d9263bb788408646fbf05a  ferrowidget-android.zip
+6672331bf6469c887e7fe26b6f3d4b90688df3a6dcf1cb5b8af458f8baa9ee78  ferrowidget-android.zip
 f7321073a8c9529c83abace1b18794d62cbf9c7cb44e34453f6fd1b1436f7f31  ferrowidget-0.1.0-py3-none-any.whl
 ```
 

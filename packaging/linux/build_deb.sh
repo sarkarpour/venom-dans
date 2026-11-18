@@ -50,9 +50,12 @@ exit 0
 EOF
 chmod 755 "${BUILD_DIR}/DEBIAN/postinst"
 
-# 3. Copy application source
-cp -r "${ROOT_DIR}/src/ferrowidget" "${BUILD_DIR}/usr/lib/ferrowidget/"
+# 3. Copy application source and build wheel
+cp -r "${ROOT_DIR}/src" "${BUILD_DIR}/usr/lib/ferrowidget/"
 cp "${ROOT_DIR}/pyproject.toml" "${BUILD_DIR}/usr/lib/ferrowidget/"
+if [ -f "${ROOT_DIR}/dist/ferrowidget-0.1.0-py3-none-any.whl" ]; then
+    cp "${ROOT_DIR}/dist/ferrowidget-0.1.0-py3-none-any.whl" "${BUILD_DIR}/usr/lib/ferrowidget/"
+fi
 find "${BUILD_DIR}/usr/lib/ferrowidget" -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
 find "${BUILD_DIR}/usr/lib/ferrowidget" -name "*.pyc" -delete 2>/dev/null || true
 
@@ -61,22 +64,58 @@ cat << 'EOF' > "${BUILD_DIR}/usr/bin/ferrowidget"
 #!/usr/bin/env bash
 set -e
 
-# If user has virtualenv in ~/.local/share/ferrowidget/venv, use it, else system/user python
 VENV_DIR="${HOME}/.local/share/ferrowidget/venv"
 LIB_DIR="/usr/lib/ferrowidget"
 
-if [ -f "${VENV_DIR}/bin/python3" ]; then
+# 1. Check if user's ~/.local/share/ferrowidget/venv has working ferrowidget
+if [ -x "${VENV_DIR}/bin/python3" ] && "${VENV_DIR}/bin/python3" -c "import ferrowidget, PySide6, moderngl" >/dev/null 2>&1; then
     exec "${VENV_DIR}/bin/python3" -m ferrowidget "$@"
-elif python3 -c "import PySide6, moderngl, numpy" >/dev/null 2>&1; then
-    export PYTHONPATH="${LIB_DIR}:${PYTHONPATH:-}"
+fi
+
+# 2. Check known virtual environments (e.g. project workspace or user venv)
+for cand in "${HOME}/Desktop/venom-dans/.venv" "${HOME}/.venv"; do
+    if [ -x "${cand}/bin/python3" ] && "${cand}/bin/python3" -c "import ferrowidget, PySide6, moderngl" >/dev/null 2>&1; then
+        exec "${cand}/bin/python3" -m ferrowidget "$@"
+    fi
+done
+
+# 3. Check system python3
+if python3 -c "import ferrowidget, PySide6, moderngl" >/dev/null 2>&1; then
     exec python3 -m ferrowidget "$@"
-else
-    echo "First time setup: Initializing FerroWidget Python environment..."
-    mkdir -p "${HOME}/.local/share/ferrowidget"
+elif python3 -c "import PySide6, moderngl, numpy" >/dev/null 2>&1; then
+    export PYTHONPATH="${LIB_DIR}:${LIB_DIR}/src:${PYTHONPATH:-}"
+    exec python3 -m ferrowidget "$@"
+fi
+
+# 4. First-time setup / repair
+if command -v notify-send >/dev/null 2>&1; then
+    notify-send "FerroWidget" "Setting up Python environment for first launch..." --icon=ferrowidget || true
+fi
+echo "First time setup: Initializing FerroWidget Python environment..."
+mkdir -p "${VENV_DIR}"
+if [ ! -f "${VENV_DIR}/bin/python3" ]; then
     python3 -m venv "${VENV_DIR}"
-    "${VENV_DIR}/bin/pip" install --upgrade pip
-    "${VENV_DIR}/bin/pip" install "${LIB_DIR}"
+fi
+"${VENV_DIR}/bin/pip" install --upgrade pip || true
+
+WHEEL=$(ls -1 "${LIB_DIR}"/ferrowidget-*.whl 2>/dev/null | head -n 1 || true)
+if [ -n "${WHEEL}" ] && [ -f "${WHEEL}" ]; then
+    "${VENV_DIR}/bin/pip" install "${WHEEL}" || true
+elif [ -d "${LIB_DIR}/src" ]; then
+    "${VENV_DIR}/bin/pip" install "${LIB_DIR}" || true
+fi
+
+if [ -x "${VENV_DIR}/bin/python3" ] && "${VENV_DIR}/bin/python3" -c "import ferrowidget" >/dev/null 2>&1; then
     exec "${VENV_DIR}/bin/python3" -m ferrowidget "$@"
+else
+    ERR_MSG="FerroWidget could not start: Python dependencies missing. Please install PySide6 and moderngl or run 'ferrowidget run' in terminal."
+    if command -v zenity >/dev/null 2>&1; then
+        zenity --error --text="${ERR_MSG}" --title="FerroWidget Error" || true
+    elif command -v notify-send >/dev/null 2>&1; then
+        notify-send -u critical "FerroWidget Error" "${ERR_MSG}" || true
+    fi
+    echo "[ERROR] ${ERR_MSG}" >&2
+    exit 1
 fi
 EOF
 chmod 755 "${BUILD_DIR}/usr/bin/ferrowidget"

@@ -65,9 +65,36 @@ else
 fi
 
 echo "3. Creating CLI launcher in ${BIN_DIR}/ferrowidget..."
-cat << EOF > "${BIN_DIR}/ferrowidget"
+cat << 'EOF' > "${BIN_DIR}/ferrowidget"
 #!/usr/bin/env bash
-exec "${INSTALL_DIR}/venv/bin/python3" -m ferrowidget "\$@"
+set -e
+
+INSTALL_VENV="${HOME}/.local/share/ferrowidget/venv"
+
+# 1. Primary venv
+if [ -x "${INSTALL_VENV}/bin/python3" ] && "${INSTALL_VENV}/bin/python3" -c "import ferrowidget, PySide6, moderngl" >/dev/null 2>&1; then
+    exec "${INSTALL_VENV}/bin/python3" -m ferrowidget "$@"
+fi
+
+# 2. Candidate venvs (e.g. project workspace)
+for cand in "${HOME}/Desktop/venom-dans/.venv" "${HOME}/.venv"; do
+    if [ -x "${cand}/bin/python3" ] && "${cand}/bin/python3" -c "import ferrowidget, PySide6, moderngl" >/dev/null 2>&1; then
+        exec "${cand}/bin/python3" -m ferrowidget "$@"
+    fi
+done
+
+# 3. System python fallback
+if python3 -c "import ferrowidget, PySide6, moderngl" >/dev/null 2>&1; then
+    exec python3 -m ferrowidget "$@"
+fi
+
+# 4. Attempt direct execution with install venv
+if [ -x "${INSTALL_VENV}/bin/python3" ]; then
+    exec "${INSTALL_VENV}/bin/python3" -m ferrowidget "$@"
+fi
+
+echo "[ERROR] FerroWidget dependencies missing. Please reinstall or run pip install." >&2
+exit 1
 EOF
 chmod +x "${BIN_DIR}/ferrowidget"
 
