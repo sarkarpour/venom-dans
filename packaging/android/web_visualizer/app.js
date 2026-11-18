@@ -1111,19 +1111,22 @@ function showToast(message, type = 'info', duration = 4000) {
     }, duration);
 }
 
+let prevFileUrl = null;
+
 // Connect Audio Element to Web Audio API
 function connectAudioElement() {
     initAudioContext();
     if (!fileSourceNode) {
         fileSourceNode = audioCtx.createMediaElementSource(audioEl);
         fileSourceNode.connect(analyserNode);
-        analyserNode.connect(audioCtx.destination); // Play through speakers/headphones
+        fileSourceNode.connect(audioCtx.destination); // Direct audio out (analyserNode remains isolated)
     }
 }
 
 // Trigger file selection
 audioFileBtn.addEventListener('click', () => {
     initAudioContext();
+    fileInput.value = '';
     fileInput.click();
 });
 
@@ -1137,7 +1140,11 @@ fileInput.addEventListener('change', (e) => {
 
     connectAudioElement();
 
+    if (prevFileUrl) {
+        URL.revokeObjectURL(prevFileUrl);
+    }
     const fileUrl = URL.createObjectURL(file);
+    prevFileUrl = fileUrl;
     audioEl.src = fileUrl;
     audioEl.play().then(() => {
         trackNameEl.textContent = '🎵 ' + file.name;
@@ -1167,6 +1174,12 @@ playPauseBtn.addEventListener('click', () => {
 closePlayerBtn.addEventListener('click', () => {
     audioEl.pause();
     audioEl.currentTime = 0;
+    if (prevFileUrl) {
+        URL.revokeObjectURL(prevFileUrl);
+        prevFileUrl = null;
+    }
+    trackProgress.value = 0;
+    trackTimeEl.textContent = '0:00 / 0:00';
     playerCard.classList.remove('active');
     audioFileBtn.classList.remove('active');
     stopDemoSynth();
@@ -1196,6 +1209,7 @@ trackProgress.addEventListener('input', () => {
 
 audioEl.addEventListener('ended', () => {
     playPauseBtn.textContent = '▶️';
+    trackProgress.value = 0;
 });
 
 
@@ -1370,7 +1384,11 @@ function updateTouch(e) {
     const rect = canvas.getBoundingClientRect();
     const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     const ny = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
-    touchPos = [nx, ny];
+    const aspect = canvas.width / canvas.height;
+    // Map screen-space touch coordinates to shader aspect ratio space
+    const px = aspect > 1.0 ? nx * aspect : nx;
+    const py = aspect < 1.0 ? ny / aspect : ny;
+    touchPos = [px, py];
 }
 
 canvas.addEventListener('pointerdown', (e) => {

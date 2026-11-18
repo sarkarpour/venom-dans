@@ -20,7 +20,7 @@ from PySide6.QtGui import (
     QWheelEvent,
 )
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
-from PySide6.QtWidgets import QMenu, QPushButton, QSystemTrayIcon
+from PySide6.QtWidgets import QHBoxLayout, QMenu, QPushButton, QSystemTrayIcon, QWidget
 
 from ferrowidget.audio.analysis import Features
 from ferrowidget.config import AppConfig
@@ -38,21 +38,122 @@ def set_windows_click_through(hwnd: int, click_through: bool) -> None:
         return
     try:
         import ctypes
+        from ctypes import wintypes
         user32 = ctypes.windll.user32
         GWL_EXSTYLE = -20
         WS_EX_TRANSPARENT = 0x00000020
         WS_EX_LAYERED = 0x00080000
-        style = user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
+
+        GetWindowLong = getattr(user32, "GetWindowLongPtrW", user32.GetWindowLongW)
+        SetWindowLong = getattr(user32, "SetWindowLongPtrW", user32.SetWindowLongW)
+        GetWindowLong.argtypes = [wintypes.HWND, ctypes.c_int]
+        GetWindowLong.restype = ctypes.c_ssize_t
+        SetWindowLong.argtypes = [wintypes.HWND, ctypes.c_int, ctypes.c_ssize_t]
+        SetWindowLong.restype = ctypes.c_ssize_t
+
+        style = GetWindowLong(hwnd, GWL_EXSTYLE)
         if click_through:
-            user32.SetWindowLongW(hwnd, GWL_EXSTYLE, style | WS_EX_TRANSPARENT | WS_EX_LAYERED)
+            SetWindowLong(hwnd, GWL_EXSTYLE, style | WS_EX_TRANSPARENT | WS_EX_LAYERED)
         else:
-            user32.SetWindowLongW(hwnd, GWL_EXSTYLE, style & ~WS_EX_TRANSPARENT)
+            SetWindowLong(hwnd, GWL_EXSTYLE, style & ~WS_EX_TRANSPARENT)
     except Exception as e:
         logger.debug("Windows click-through error: %s", e)
 
 
 class _TypingSignalBridge(QObject):
     pulse = Signal()
+    hotkey_typing = Signal()
+    hotkey_mic = Signal()
+    hotkey_edit = Signal()
+
+
+class FerroControlsOverlay(QWidget):
+    """Floating glassmorphism toolbar hosting toggle buttons for typing and mic modes."""
+
+    def __init__(self, owner: "FerroWindow"):
+        super().__init__(None, Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        self.owner = owner
+        self.setAttribute(Qt.WA_TranslucentBackground, True)
+        self.setAttribute(Qt.WA_AlwaysStackOnTop, True)
+        self.setAttribute(Qt.WA_ShowWithoutActivating, True)
+        self.setObjectName("FerroControlsOverlay")
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(10, 6, 10, 6)
+        layout.setSpacing(8)
+
+        self.btn_typing = QPushButton("⌨️ تایپ: خاموش", self)
+        self.btn_mic = QPushButton("🎤 میکروفن: خاموش", self)
+        self.btn_close = QPushButton("✕", self)
+
+        for btn in (self.btn_typing, self.btn_mic, self.btn_close):
+            btn.setFocusPolicy(Qt.NoFocus)
+
+        self.btn_close.setFixedSize(22, 22)
+        self.btn_close.setToolTip("مخفی کردن دکمه‌ها (از منوی تسک‌بار یا با کلید میانبر قابل بازگشت است)")
+        self.btn_close.setStyleSheet(
+            "QPushButton { background: rgba(255, 255, 255, 0.08); color: #8a99a8; border: none; border-radius: 11px; font-size: 11px; }"
+            "QPushButton:hover { background: rgba(255, 77, 77, 0.7); color: #fff; }"
+        )
+
+        self.btn_typing.clicked.connect(self.owner.toggle_typing_reactive)
+        self.btn_mic.clicked.connect(self.owner.toggle_mic_mode)
+        self.btn_close.clicked.connect(self._on_close_clicked)
+
+        layout.addWidget(self.btn_typing)
+        layout.addWidget(self.btn_mic)
+        layout.addWidget(self.btn_close)
+
+        self.setStyleSheet(
+            "#FerroControlsOverlay { background: rgba(15, 19, 26, 0.92); "
+            "border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 18px; }"
+        )
+        self.adjustSize()
+        self.update_states()
+
+    def _on_close_clicked(self) -> None:
+        self.hide()
+        if hasattr(self.owner, "act_controls") and self.owner.act_controls:
+            self.owner.act_controls.setChecked(False)
+
+    def update_states(self) -> None:
+        style_off = (
+            "QPushButton { background: rgba(255, 255, 255, 0.08); color: #c4d0dc; "
+            "border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 13px; "
+            "font-size: 11px; font-weight: 500; padding: 4px 10px; }"
+            "QPushButton:hover { background: rgba(255, 255, 255, 0.16); color: #fff; border-color: rgba(0, 229, 255, 0.5); }"
+        )
+        style_on = (
+            "QPushButton { background: #00e5ff; color: #05070a; "
+            "border: 1px solid #00e5ff; border-radius: 13px; "
+            "font-size: 11px; font-weight: 700; padding: 4px 10px; }"
+            "QPushButton:hover { background: #33ebff; border-color: #33ebff; }"
+        )
+        if self.owner.is_typing_reactive:
+            self.btn_typing.setStyleSheet(style_on)
+            self.btn_typing.setText("⌨️ تایپ: فعال")
+            self.btn_typing.setToolTip("حالت حساس به تایپ فعال است (کلیک برای خاموش کردن)")
+        else:
+            self.btn_typing.setStyleSheet(style_off)
+            self.btn_typing.setText("⌨️ تایپ: خاموش")
+            self.btn_typing.setToolTip("کلیک برای فعال کردن واکنش فروسیال به تایپ کیبورد")
+
+        if self.owner.is_mic_mode:
+            self.btn_mic.setStyleSheet(style_on)
+            self.btn_mic.setText("🎤 میکروفن: فعال")
+            self.btn_mic.setToolTip("ورودی میکروفن فعال است (کلیک برای بازگشت به صدای سیستم)")
+        else:
+            self.btn_mic.setStyleSheet(style_off)
+            self.btn_mic.setText("🎤 میکروفن: خاموش")
+            self.btn_mic.setToolTip("کلیک برای روشن کردن میکروفن و واکنش به صدای محیط")
+
+    def update_position(self) -> None:
+        if not self.isVisible():
+            return
+        w_geo = self.owner.geometry()
+        x = w_geo.x() + (w_geo.width() - self.width()) // 2
+        y = w_geo.y() + w_geo.height() - self.height() - 10
+        self.move(x, y)
 
 
 class FerroWindow(QOpenGLWidget):
@@ -116,25 +217,36 @@ class FerroWindow(QOpenGLWidget):
         # Setup initial geometry based on monitor and config
         self._apply_geometry_from_config()
 
-        # Typing listener setup with GUI thread bridge
+        # Typing listener setup with GUI thread bridge & global hotkeys
         self._typing_bridge = _TypingSignalBridge()
         self._typing_bridge.pulse.connect(self._on_typing_pulse_gui)
-        self.typing_listener = TypingListener(on_key_press=self._typing_bridge.pulse.emit)
-        if self.is_typing_reactive:
-            self.typing_listener.start()
+        self._typing_bridge.hotkey_typing.connect(self.toggle_typing_reactive)
+        self._typing_bridge.hotkey_mic.connect(self.toggle_mic_mode)
+        self._typing_bridge.hotkey_edit.connect(lambda: self.set_locked(not self.is_locked))
 
-        # Overlay control buttons for interactive mode
+        self.typing_listener = TypingListener(
+            on_key_press=self._typing_bridge.pulse.emit,
+            on_hotkey_typing=self._typing_bridge.hotkey_typing.emit,
+            on_hotkey_mic=self._typing_bridge.hotkey_mic.emit,
+            on_hotkey_edit=self._typing_bridge.hotkey_edit.emit,
+        )
+        self.typing_listener.start()
+
+        # In-window overlay control buttons for interactive mode
         self.btn_typing = QPushButton("⌨️ تایپ: خاموش", self)
         self.btn_mic = QPushButton("🎤 میکروفن: خاموش", self)
         self.btn_typing.setFocusPolicy(Qt.NoFocus)
         self.btn_mic.setFocusPolicy(Qt.NoFocus)
         self.btn_typing.clicked.connect(self.toggle_typing_reactive)
         self.btn_mic.clicked.connect(self.toggle_mic_mode)
-        self._update_overlay_buttons_state()
         self._update_overlay_buttons_geometry()
         if self.is_locked:
             self.btn_typing.hide()
             self.btn_mic.hide()
+
+        # Dedicated floating glassmorphism controls overlay (always clickable on desktop)
+        self.controls_bar = FerroControlsOverlay(self)
+        self._update_overlay_buttons_state()
 
         # System Tray Icon setup
         self.tray_icon: Optional[QSystemTrayIcon] = None
@@ -273,6 +385,23 @@ class FerroWindow(QOpenGLWidget):
         super().showEvent(event)
         self.timer.start()
         self._apply_native_x11_states()
+        if hasattr(self, "controls_bar") and self.controls_bar:
+            self.controls_bar.update_position()
+            if hasattr(self, "act_controls") and self.act_controls:
+                if self.act_controls.isChecked():
+                    self.controls_bar.show()
+            else:
+                self.controls_bar.show()
+
+    def hideEvent(self, event) -> None:
+        if hasattr(self, "controls_bar") and self.controls_bar:
+            self.controls_bar.hide()
+        super().hideEvent(event)
+
+    def moveEvent(self, event) -> None:
+        super().moveEvent(event)
+        if hasattr(self, "controls_bar") and self.controls_bar:
+            self.controls_bar.update_position()
 
     def changeEvent(self, event: QEvent) -> None:
         super().changeEvent(event)
@@ -366,7 +495,7 @@ class FerroWindow(QOpenGLWidget):
             event.accept()
             return
 
-        # Global hotkeys: Ctrl+Shift+T for typing reactive, Ctrl+Shift+M for mic mode
+        # Global hotkeys: Ctrl+Shift+T for typing reactive, Ctrl+Shift+M for mic mode, Ctrl+Shift+E for edit mode
         if (event.modifiers() & Qt.ControlModifier) and (event.modifiers() & Qt.ShiftModifier):
             if event.key() == Qt.Key_T:
                 self.toggle_typing_reactive()
@@ -374,6 +503,10 @@ class FerroWindow(QOpenGLWidget):
                 return
             elif event.key() == Qt.Key_M:
                 self.toggle_mic_mode()
+                event.accept()
+                return
+            elif event.key() == Qt.Key_E:
+                self.set_locked(not self.is_locked)
                 event.accept()
                 return
 
@@ -413,6 +546,13 @@ class FerroWindow(QOpenGLWidget):
         self.act_edit.setChecked(not self.is_locked)
         self.act_edit.triggered.connect(lambda chk: self.set_locked(not chk))
         menu.addAction(self.act_edit)
+
+        # 2. Controls overlay toggle
+        self.act_controls = QAction("🎛️ نمایش دکمه‌های کنترل (Show Controls)", menu)
+        self.act_controls.setCheckable(True)
+        self.act_controls.setChecked(True)
+        self.act_controls.triggered.connect(lambda chk: self.controls_bar.setVisible(chk))
+        menu.addAction(self.act_controls)
 
         menu.addSeparator()
 
@@ -513,6 +653,8 @@ class FerroWindow(QOpenGLWidget):
         return self.is_mic_mode
 
     def _update_overlay_buttons_state(self) -> None:
+        if hasattr(self, "controls_bar") and self.controls_bar:
+            self.controls_bar.update_states()
         if not hasattr(self, "btn_typing") or not hasattr(self, "btn_mic"):
             return
         style_off = (
@@ -560,15 +702,19 @@ class FerroWindow(QOpenGLWidget):
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
         self._update_overlay_buttons_geometry()
+        if hasattr(self, "controls_bar") and self.controls_bar:
+            self.controls_bar.update_position()
 
     def closeEvent(self, event) -> None:
         self.cleanup()
         super().closeEvent(event)
 
     def cleanup(self) -> None:
-        """Tear down background typing listener."""
+        """Tear down background typing listener and controls overlay."""
         if hasattr(self, "typing_listener") and self.typing_listener:
             self.typing_listener.stop()
+        if hasattr(self, "controls_bar") and self.controls_bar:
+            self.controls_bar.close()
 
     def set_theme(self, theme_name: str) -> None:
         if theme_name in THEMES:

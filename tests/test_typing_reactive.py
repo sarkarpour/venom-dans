@@ -95,18 +95,42 @@ def test_ferro_window_typing_and_mic_toggles():
         assert win.is_mic_mode is False
         assert "خاموش" in win.btn_typing.text()
         assert "خاموش" in win.btn_mic.text()
+        assert hasattr(win, "controls_bar")
+        assert "خاموش" in win.controls_bar.btn_typing.text()
+        assert "خاموش" in win.controls_bar.btn_mic.text()
 
         # Toggle typing reactive ON
         win.toggle_typing_reactive()
         assert win.is_typing_reactive is True
         assert win.config.audio.typing_reactive is True
         assert "فعال" in win.btn_typing.text()
+        assert "فعال" in win.controls_bar.btn_typing.text()
 
         # Toggle mic mode ON
         win.toggle_mic_mode()
         assert win.is_mic_mode is True
         assert win.config.audio.mic_mode is True
         assert "فعال" in win.btn_mic.text()
+        assert "فعال" in win.controls_bar.btn_mic.text()
+
+        # Clicking floating controls buttons directly toggles states
+        win.controls_bar.btn_typing.click()
+        assert win.is_typing_reactive is False
+        assert "خاموش" in win.controls_bar.btn_typing.text()
+        assert "خاموش" in win.btn_typing.text()
+
+        win.controls_bar.btn_typing.click()
+        assert win.is_typing_reactive is True
+        assert "فعال" in win.controls_bar.btn_typing.text()
+
+        win.controls_bar.btn_mic.click()
+        assert win.is_mic_mode is False
+        assert "خاموش" in win.controls_bar.btn_mic.text()
+        assert "خاموش" in win.btn_mic.text()
+
+        win.controls_bar.btn_mic.click()
+        assert win.is_mic_mode is True
+        assert "فعال" in win.controls_bar.btn_mic.text()
 
         # Test hotkey simulation: Ctrl+Shift+T toggles typing OFF
         event_t = QKeyEvent(
@@ -117,6 +141,7 @@ def test_ferro_window_typing_and_mic_toggles():
         win.keyPressEvent(event_t)
         assert win.is_typing_reactive is False
         assert "خاموش" in win.btn_typing.text()
+        assert "خاموش" in win.controls_bar.btn_typing.text()
 
         # Test hotkey simulation: Ctrl+Shift+M toggles mic OFF
         event_m = QKeyEvent(
@@ -127,14 +152,27 @@ def test_ferro_window_typing_and_mic_toggles():
         win.keyPressEvent(event_m)
         assert win.is_mic_mode is False
         assert "خاموش" in win.btn_mic.text()
+        assert "خاموش" in win.controls_bar.btn_mic.text()
 
-        # Test locked mode hiding overlay buttons
+        # Test hotkey simulation: Ctrl+Shift+E toggles locked / edit mode
+        init_locked = win.is_locked
+        event_e = QKeyEvent(
+            QKeyEvent.Type.KeyPress,
+            Qt.Key.Key_E,
+            Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier,
+        )
+        win.keyPressEvent(event_e)
+        assert win.is_locked != init_locked
+        win.keyPressEvent(event_e)
+        assert win.is_locked == init_locked
+
+        # Test locked mode hiding in-window overlay buttons
         win.set_locked(True)
         assert win.is_locked is True
         assert win.btn_typing.isHidden()
         assert win.btn_mic.isHidden()
 
-        # Test edit mode showing overlay buttons
+        # Test edit mode showing in-window overlay buttons
         win.set_locked(False)
         assert win.is_locked is False
         assert not win.btn_typing.isHidden()
@@ -145,3 +183,20 @@ def test_ferro_window_typing_and_mic_toggles():
         win.close()
         win.deleteLater()
         _app.processEvents()
+
+
+def test_mono_mic_audio_processing_resilience():
+    """Verify AudioCaptureThread and AudioAnalyzer process mono audio without crashing."""
+    from ferrowidget.audio.capture import AudioCaptureThread
+    thread = AudioCaptureThread(mic_mode=True)
+    mono_chunk = np.random.uniform(-0.5, 0.5, size=(512, 1)).astype(np.float32)
+
+    # Convert mono (512, 1) to stereo (512, 2) as performed in _try_sounddevice_capture
+    stereo_chunk = np.repeat(mono_chunk, 2, axis=1)
+    feat = thread.analyzer.process_hop(stereo_chunk)
+
+    assert feat is not None
+    assert not np.isnan(feat.loudness)
+    assert not np.isnan(feat.sub)
+    assert len(feat.bands) == 32
+    assert feat.balance == 0.0  # Identical L and R gives zero balance

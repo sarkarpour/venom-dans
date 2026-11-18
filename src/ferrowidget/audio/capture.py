@@ -424,9 +424,21 @@ class AudioCaptureThread(threading.Thread):
         try:
             device_idx = None
             extra_settings = None
+            sample_rate = 48000
+            channels = 2
 
             if self.mic_mode:
                 device_idx = None  # Default input device
+                try:
+                    default_input_info = sd.query_devices(kind="input")
+                    max_in_ch = int(default_input_info.get("max_input_channels", 2))
+                    channels = 1 if max_in_ch == 1 else 2
+                    default_sr = int(default_input_info.get("default_samplerate", 48000))
+                    if default_sr in (44100, 48000):
+                        sample_rate = default_sr
+                except Exception as e:
+                    logger.debug("Query input device info fallback: %s", e)
+                    channels = 1  # Safe mono fallback for mics
             else:
                 if sys.platform == "win32":
                     try:
@@ -439,22 +451,35 @@ class AudioCaptureThread(threading.Thread):
                             default_output = sd.query_hostapis(wasapi_api_idx).get("default_output_device")
                             if default_output is not None and default_output >= 0:
                                 device_idx = default_output
+                                dev_info = sd.query_devices(device_idx)
+                                dev_sr = int(dev_info.get("default_samplerate", 48000))
+                                if dev_sr in (44100, 48000):
+                                    sample_rate = dev_sr
+                                dev_ch = int(dev_info.get("max_output_channels", 2))
+                                if dev_ch >= 2:
+                                    channels = 2
                     except Exception as e:
                         logger.debug("WASAPI loopback configuration error: %s", e)
 
             cur_mode = self.mic_mode
             with sd.InputStream(
-                samplerate=48000,
-                channels=2,
+                samplerate=sample_rate,
+                channels=channels,
                 dtype="float32",
                 blocksize=hop_size,
                 device=device_idx,
                 extra_settings=extra_settings,
             ) as stream:
-                logger.info("Spawned sounddevice capture stream (mic_mode=%s)", cur_mode)
+                logger.info("Spawned sounddevice capture stream (mic_mode=%s, channels=%d, rate=%d)", cur_mode, channels, sample_rate)
                 while self._running.is_set() and not self._paused.is_set() and self.mic_mode == cur_mode:
                     data, _ = stream.read(hop_size)
-                    feat = self.analyzer.process_hop(data)
+                    if data.ndim == 1:
+                        chunk = np.column_stack([data, data])
+                    elif data.shape[1] == 1:
+                        chunk = np.repeat(data, 2, axis=1)
+                    else:
+                        chunk = data[:, :2]
+                    feat = self.analyzer.process_hop(chunk)
                     self._latest_features = feat
             return True
         except Exception as e:

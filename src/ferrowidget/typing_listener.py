@@ -14,8 +14,17 @@ logger = logging.getLogger(__name__)
 class TypingListener:
     """Detects global keyboard typing across desktop applications and triggers reactive pulses."""
 
-    def __init__(self, on_key_press: Optional[Callable[[], None]] = None):
+    def __init__(
+        self,
+        on_key_press: Optional[Callable[[], None]] = None,
+        on_hotkey_typing: Optional[Callable[[], None]] = None,
+        on_hotkey_mic: Optional[Callable[[], None]] = None,
+        on_hotkey_edit: Optional[Callable[[], None]] = None,
+    ):
         self.on_key_press = on_key_press
+        self.on_hotkey_typing = on_hotkey_typing
+        self.on_hotkey_mic = on_hotkey_mic
+        self.on_hotkey_edit = on_hotkey_edit
         self._running = threading.Event()
         self._thread: Optional[threading.Thread] = None
         self._last_trigger_time = 0.0
@@ -93,11 +102,51 @@ class TypingListener:
             WM_KEYDOWN = 0x0100
             WM_SYSKEYDOWN = 0x0104
 
-            HOOKPROC = CFUNCTYPE(c_int, c_int, wintypes.WPARAM, wintypes.LPARAM)
+            class KBDLLHOOKSTRUCT(ctypes.Structure):
+                _fields_ = [
+                    ("vkCode", wintypes.DWORD),
+                    ("scanCode", wintypes.DWORD),
+                    ("flags", wintypes.DWORD),
+                    ("time", wintypes.DWORD),
+                    ("dwExtraInfo", ctypes.c_size_t),
+                ]
+
+            LRESULT = ctypes.c_ssize_t
+            HOOKPROC = CFUNCTYPE(LRESULT, c_int, wintypes.WPARAM, wintypes.LPARAM)
+
+            # Explicit 64-bit argument and return type definitions
+            user32.SetWindowsHookExW.argtypes = [c_int, HOOKPROC, wintypes.HINSTANCE, wintypes.DWORD]
+            user32.SetWindowsHookExW.restype = wintypes.HHOOK
+            user32.UnhookWindowsHookEx.argtypes = [wintypes.HHOOK]
+            user32.UnhookWindowsHookEx.restype = wintypes.BOOL
+            user32.CallNextHookEx.argtypes = [wintypes.HHOOK, c_int, wintypes.WPARAM, wintypes.LPARAM]
+            user32.CallNextHookEx.restype = LRESULT
+            kernel32.GetModuleHandleW.argtypes = [wintypes.LPCWSTR]
+            kernel32.GetModuleHandleW.restype = wintypes.HMODULE
 
             def hook_proc(nCode, wParam, lParam):
                 if nCode >= 0 and wParam in (WM_KEYDOWN, WM_SYSKEYDOWN):
-                    self.trigger()
+                    try:
+                        kbd = ctypes.cast(lParam, ctypes.POINTER(KBDLLHOOKSTRUCT)).contents
+                        vk = kbd.vkCode
+                        ctrl_down = bool(user32.GetAsyncKeyState(0x11) & 0x8000)
+                        shift_down = bool(user32.GetAsyncKeyState(0x10) & 0x8000)
+
+                        if ctrl_down and shift_down:
+                            if vk in (0x54, ord('t'), ord('T')):  # Ctrl+Shift+T
+                                if callable(self.on_hotkey_typing):
+                                    self.on_hotkey_typing()
+                            elif vk in (0x4D, ord('m'), ord('M')):  # Ctrl+Shift+M
+                                if callable(self.on_hotkey_mic):
+                                    self.on_hotkey_mic()
+                            elif vk in (0x45, ord('e'), ord('E')):  # Ctrl+Shift+E
+                                if callable(self.on_hotkey_edit):
+                                    self.on_hotkey_edit()
+                        else:
+                            self.trigger()
+                    except Exception as e:
+                        logger.debug("hook_proc decoding error: %s", e)
+                        self.trigger()
                 return user32.CallNextHookEx(self._windows_hook, nCode, wParam, lParam)
 
             self._windows_proc = HOOKPROC(hook_proc)
@@ -151,11 +200,20 @@ class TypingListener:
         """Poll virtual key states on Windows (0x08 Backspace to 0xDE quote) every 15ms."""
         last_states = bytearray(256)
         while self._running.is_set():
+            ctrl_down = bool(user32.GetAsyncKeyState(0x11) & 0x8000)
+            shift_down = bool(user32.GetAsyncKeyState(0x10) & 0x8000)
             for vk in range(0x08, 0xE0):
-                # High-order bit is set if the key is down
                 is_down = bool(user32.GetAsyncKeyState(vk) & 0x8000)
                 if is_down and not last_states[vk]:
-                    self.trigger()
+                    if ctrl_down and shift_down:
+                        if vk in (0x54, ord('t'), ord('T')) and callable(self.on_hotkey_typing):
+                            self.on_hotkey_typing()
+                        elif vk in (0x4D, ord('m'), ord('M')) and callable(self.on_hotkey_mic):
+                            self.on_hotkey_mic()
+                        elif vk in (0x45, ord('e'), ord('E')) and callable(self.on_hotkey_edit):
+                            self.on_hotkey_edit()
+                    else:
+                        self.trigger()
                 last_states[vk] = 1 if is_down else 0
             time.sleep(0.015)
 
