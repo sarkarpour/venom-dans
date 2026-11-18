@@ -90,6 +90,7 @@ class FerroApp:
             sensitivity=self.config.audio.sensitivity,
             visual_delay_ms=self.config.audio.visual_delay_ms,
             synthetic_source=synthetic_source,
+            mic_mode=self.config.audio.mic_mode,
         )
 
         # Physics simulation
@@ -101,6 +102,7 @@ class FerroApp:
             simulation=self.sim,
             features_provider=lambda: self.audio_thread.latest_features,
             debug_bg=self.debug_bg_idx,
+            audio_capture=self.audio_thread,
         )
 
         # IPC Server
@@ -196,6 +198,28 @@ class FerroApp:
                 self.window.reload_config(self.config)
                 return {"status": "ok", "message": "Config reloaded."}
 
+            elif cmd == "typing":
+                mode = payload.get("mode", "toggle")
+                if mode == "on":
+                    self.window.set_typing_reactive(True)
+                elif mode == "off":
+                    self.window.set_typing_reactive(False)
+                else:
+                    self.window.toggle_typing_reactive()
+                self.config = self.window.config
+                return {"status": "ok", "typing_reactive": self.window.is_typing_reactive}
+
+            elif cmd == "mic":
+                mode = payload.get("mode", "toggle")
+                if mode == "on":
+                    self.window.set_mic_mode(True)
+                elif mode == "off":
+                    self.window.set_mic_mode(False)
+                else:
+                    self.window.toggle_mic_mode()
+                self.config = self.window.config
+                return {"status": "ok", "mic_mode": self.window.is_mic_mode}
+
             elif cmd == "status":
                 geo = self.window.geometry()
                 feat = self.audio_thread.latest_features
@@ -206,6 +230,8 @@ class FerroApp:
                     "fps": round(self.window.fps_metric, 1),
                     "theme": self.window.config.look.theme,
                     "preset": self.window.config.fluid.preset,
+                    "typing_reactive": self.window.is_typing_reactive,
+                    "mic_mode": self.window.is_mic_mode,
                     "audio_silent": feat.is_silent,
                     "loudness": round(feat.loudness, 2),
                     "kick": round(feat.kick, 2),
@@ -233,5 +259,6 @@ class FerroApp:
         logger.info("FerroApp shutting down...")
         self.audio_thread.stop()
         self.ipc.stop()
+        self.window.cleanup()
         self.window.close()
         self.app.quit()

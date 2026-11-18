@@ -56,6 +56,8 @@ def test_save_and_reload_persistence():
         cfg.window.size = 512
         cfg.look.theme = "mercury"
         cfg.fluid.preset = "cinematic"
+        cfg.audio.mic_mode = True
+        cfg.audio.typing_reactive = True
         cfg.save(tmp_path)
 
         assert tmp_path.exists()
@@ -64,6 +66,8 @@ def test_save_and_reload_persistence():
         assert loaded.window.size == 512
         assert loaded.look.theme == "mercury"
         assert loaded.fluid.preset == "cinematic"
+        assert loaded.audio.mic_mode is True
+        assert loaded.audio.typing_reactive is True
 
 
 def test_corrupted_type_resilience():

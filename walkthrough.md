@@ -33,39 +33,42 @@ FerroWidget has been developed, tested, and verified on Ubuntu Linux (Wayland se
 ## 3. Empirical Verification Record
 
 ### 3.1. Test Suite Execution (`pytest`)
-Ran all 25 unit and integration tests covering DSP, physics, configuration, OpenGL rendering, and IPC:
+Ran all 28 unit and integration tests covering DSP, physics, configuration, OpenGL rendering, typing reactivity, and IPC:
 ```bash
 ./.venv/bin/pytest tests/ -v
 ```
 **Result**:
 ```
-tests/test_cli_ipc.py::test_cli_doctor PASSED                            [  4%]
-tests/test_cli_ipc.py::test_cli_argument_validation PASSED               [  8%]
-tests/test_cli_ipc.py::test_ipc_roundtrip PASSED                         [ 12%]
-tests/test_cli_ipc.py::test_dump_frame_generates_all_eight_moments PASSED [ 16%]
-tests/test_cli_ipc.py::test_audio_thread_clean_lifecycle PASSED          [ 20%]
-tests/test_cli_ipc.py::test_monitor_source_resolution PASSED             [ 24%]
-tests/test_config.py::test_default_config_validation PASSED              [ 28%]
-tests/test_config.py::test_clamping_out_of_bounds_values PASSED          [ 32%]
-tests/test_config.py::test_save_and_reload_persistence PASSED            [ 36%]
-tests/test_config.py::test_corrupted_type_resilience PASSED              [ 40%]
-tests/test_dsp.py::test_synthetic_audio_generators PASSED                [ 44%]
-tests/test_dsp.py::test_hop_execution_latency PASSED                     [ 48%]
-tests/test_dsp.py::test_frequency_band_accuracy PASSED                   [ 52%]
-tests/test_dsp.py::test_120bpm_kick_onset_timing PASSED                  [ 56%]
-tests/test_dsp.py::test_agc_invariance_across_input_gains PASSED         [ 60%]
-tests/test_physics.py::test_simulation_determinism PASSED                [ 64%]
-tests/test_physics.py::test_no_nans_and_bounded_energy_over_10_minutes PASSED [ 68%]
-tests/test_physics.py::test_presets PASSED                               [ 72%]
-tests/test_physics.py::test_uniform_buffers_packing PASSED               [ 76%]
-tests/test_physics.py::test_droplet_tear_off_and_coalescence_lifecycle PASSED [ 80%]
-tests/test_physics.py::test_flying_pool_limits PASSED                    [ 84%]
-tests/test_render.py::test_renderer_initialization_and_offscreen_render PASSED [ 88%]
-tests/test_render.py::test_alpha_boundary_and_premultiplied_invariants PASSED [ 92%]
-tests/test_render.py::test_all_themes_render PASSED                      [ 96%]
-tests/test_render.py::test_raymarch_mode_render PASSED                   [100%]
+tests/test_cli_ipc.py::test_cli_doctor PASSED                            [  3%]
+tests/test_cli_ipc.py::test_monitor_source_resolution PASSED             [  7%]
+tests/test_cli_ipc.py::test_cli_ctl_input_validation PASSED              [ 10%]
+tests/test_cli_ipc.py::test_audio_capture_lifecycle_and_features PASSED  [ 14%]
+tests/test_cli_ipc.py::test_dump_frame_all_eight_moments PASSED          [ 17%]
+tests/test_cli_ipc.py::test_ipc_roundtrip PASSED                         [ 21%]
+tests/test_config.py::test_default_config_validation PASSED              [ 25%]
+tests/test_config.py::test_clamping_out_of_bounds_values PASSED          [ 28%]
+tests/test_config.py::test_save_and_reload_persistence PASSED            [ 32%]
+tests/test_config.py::test_corrupted_type_resilience PASSED              [ 35%]
+tests/test_dsp.py::test_synthetic_audio_generators PASSED                [ 39%]
+tests/test_dsp.py::test_hop_execution_latency PASSED                     [ 42%]
+tests/test_dsp.py::test_frequency_band_accuracy PASSED                   [ 46%]
+tests/test_dsp.py::test_120bpm_kick_onset_timing PASSED                  [ 50%]
+tests/test_dsp.py::test_agc_invariance_across_input_gains PASSED         [ 53%]
+tests/test_physics.py::test_simulation_determinism PASSED                [ 57%]
+tests/test_physics.py::test_no_nans_and_bounded_energy_over_10_minutes PASSED [ 60%]
+tests/test_physics.py::test_presets PASSED                               [ 64%]
+tests/test_physics.py::test_uniform_buffers_packing PASSED               [ 67%]
+tests/test_physics.py::test_droplet_tear_off_and_coalescence_lifecycle PASSED [ 71%]
+tests/test_physics.py::test_flying_pool_limits PASSED                    [ 75%]
+tests/test_render.py::test_renderer_initialization_and_offscreen_render PASSED [ 78%]
+tests/test_render.py::test_alpha_boundary_and_premultiplied_invariants PASSED [ 82%]
+tests/test_render.py::test_all_themes_render PASSED                      [ 85%]
+tests/test_render.py::test_raymarch_mode_render PASSED                   [ 89%]
+tests/test_typing_reactive.py::test_fluid_simulation_typing_impulse PASSED [ 92%]
+tests/test_typing_reactive.py::test_typing_listener_lifecycle_and_debounce PASSED [ 96%]
+tests/test_typing_reactive.py::test_ferro_window_typing_and_mic_toggles PASSED [100%]
 
-============================= 25 passed in 52.34s ==============================
+============================= 28 passed in 51.64s ==============================
 ```
 
 ### 3.2. Code Quality & Linting (`ruff`)
@@ -120,10 +123,41 @@ Executed live desktop overlay test communicating over `$XDG_RUNTIME_DIR/ferrowid
 6. Issued `ferrowidget ctl quit`: process cleanly shut down audio capture thread, closed IPC socket, and exited with status 0.
 7. Verified with `pgrep`: zero zombie or orphaned processes remaining.
 
+### 3.5. Typing Reactive & Microphone Input Controls (Windows & Desktop)
+- **⌨️ Typing Reactive Mode (`حساس به تایپ`)**:
+  - Global background listener (`TypingListener`) on Windows (`WH_KEYBOARD_LL` low-level hook / `GetAsyncKeyState`) and Linux (`Xlib` keymap polling).
+  - Physics impulse injection (`FluidSimulation.inject_typing_impulse`):
+    - Elevates `spike_vel` (+18.0) and `spike` amount, immediately sprouting sharp Rosensweig spikes.
+    - Imparts radial kinetic kicks to droplet radii (`r_vel`), making the fluid pulse dynamically.
+    - Modulates center and orbital electromagnets in typing cadence.
+    - Keeps render loop awake at full 60 FPS while typing even during complete audio silence.
+  - Controls:
+    - System Tray menu checkable action: `⌨️ حساس به تایپ (Typing Reactive)`.
+    - On-screen widget glass pill button: `[ ⌨️ تایپ: فعال / خاموش ]`.
+    - Hotkey: `Ctrl + Shift + T`.
+    - IPC command: `ferrowidget ctl typing [on|off|toggle]`.
+- **🎤 Microphone Input Mode (`روشن کردن میکروفن و حساس به صدای ورودی`)**:
+  - Seamlessly switches capture input between system audio output playback (WASAPI loopback on Windows, monitor sink on Linux) and live ambient microphone input.
+  - Controls:
+    - System Tray menu checkable action: `🎤 روشن کردن میکروفن (Microphone Input)`.
+    - On-screen widget glass pill button: `[ 🎤 میکروفن: فعال / خاموش ]`.
+    - Hotkey: `Ctrl + Shift + M`.
+    - IPC command: `ferrowidget ctl mic [on|off|toggle]`.
+
+### 3.6. Android PWA & WebGL 2.0 Visualizer Verification
+- **Full Desktop Parity**: 64 ferrofluid droplets, 19 electromagnets, underdamped spring ODEs, and Rosensweig hexagonal spike synthesis running in hardware-accelerated WebGL 2.0.
+- **🎵 Direct Audio File Picker (`انتخاب آهنگ`)**: Allows users on Android to directly pick and play local music files (MP3, WAV, FLAC, OGG, M4A) with Web Audio API Analyzer (works 100% offline with zero device permissions).
+- **🎤 Ambient Microphone Input**: Connects to `getUserMedia` with smart fallback and informative toasts if browser permissions are restricted in file:// protocol.
+- **🎶 Built-in Synth Demo**: Instant kick & snare electronic club beat synthesizer.
+- **Multi-Touch Interaction**: Interactive touch/pointer pulling fluid core towards touch point.
+- **Offline Service Worker (`sw.js`)**: Caches all assets for offline standalone installation.
+- Packaged in `dist/ferrowidget-android.zip`.
+
 ---
 
 ## 5. Artifact Checklist
 - [x] `src/ferrowidget/config.py`
+- [x] `src/ferrowidget/typing_listener.py`
 - [x] `src/ferrowidget/x11.py`
 - [x] `src/ferrowidget/ipc.py`
 - [x] `src/ferrowidget/audio/synthetic.py`
@@ -136,6 +170,11 @@ Executed live desktop overlay test communicating over `$XDG_RUNTIME_DIR/ferrowid
 - [x] `src/ferrowidget/window.py`
 - [x] `src/ferrowidget/app.py`
 - [x] `src/ferrowidget/cli.py`
+- [x] `packaging/windows/README_WINDOWS.md`
+- [x] `packaging/windows/install_windows.bat`
+- [x] `packaging/android/web_visualizer/app.js`
+- [x] `packaging/android/web_visualizer/index.html`
+- [x] `packaging/android/web_visualizer/sw.js`
 - [x] `packaging/ferrowidget.desktop`
 - [x] `packaging/ferrowidget.service`
 - [x] `tests/test_dsp.py`
@@ -143,6 +182,7 @@ Executed live desktop overlay test communicating over `$XDG_RUNTIME_DIR/ferrowid
 - [x] `tests/test_render.py`
 - [x] `tests/test_config.py`
 - [x] `tests/test_cli_ipc.py`
+- [x] `tests/test_typing_reactive.py`
 - [x] `docs/DECISIONS.md`
 - [x] `README.md`
 - [x] `task.md`

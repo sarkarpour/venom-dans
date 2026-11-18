@@ -47,6 +47,10 @@ sensitivity = {sensitivity}
 visual_delay_ms = {visual_delay_ms}
 # Adaptive Gain Control enabled
 agc = {agc}
+# Microphone input mode: true = live microphone, false = system audio monitor
+mic_mode = {mic_mode}
+# Typing reactive mode: true = fluid pulses and sprouts spikes when typing on keyboard
+typing_reactive = {typing_reactive}
 
 [fluid]
 # Movement preset: "calm", "club", "cinematic"
@@ -125,6 +129,8 @@ class AudioConfig:
     sensitivity: float = 1.0
     visual_delay_ms: int = 0
     agc: bool = True
+    mic_mode: bool = False
+    typing_reactive: bool = False
 
     def validate(self) -> None:
         try:
@@ -135,6 +141,10 @@ class AudioConfig:
             self.visual_delay_ms = max(0, min(500, int(self.visual_delay_ms)))
         except (ValueError, TypeError):
             self.visual_delay_ms = 0
+        if not isinstance(self.mic_mode, bool):
+            self.mic_mode = False
+        if not isinstance(self.typing_reactive, bool):
+            self.typing_reactive = False
 
 
 @dataclass
@@ -284,6 +294,8 @@ class AppConfig:
             sensitivity=self.audio.sensitivity,
             visual_delay_ms=self.audio.visual_delay_ms,
             agc=str(self.audio.agc).lower(),
+            mic_mode=str(self.audio.mic_mode).lower(),
+            typing_reactive=str(self.audio.typing_reactive).lower(),
             preset=self.fluid.preset,
             droplets=self.fluid.droplets,
             viscosity=self.fluid.viscosity,

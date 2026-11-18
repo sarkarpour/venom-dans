@@ -72,6 +72,12 @@ def cmd_ctl(args: argparse.Namespace) -> int:
         except ValueError:
             print("Error: 'move' coordinates must be integers", file=sys.stderr)
             return 1
+    elif cmd in ("typing", "mic"):
+        mode = cmd_args[0] if cmd_args else "toggle"
+        if mode not in ("on", "off", "toggle"):
+            print(f"Error: '{cmd}' argument must be on, off, or toggle", file=sys.stderr)
+            return 1
+        payload["mode"] = mode
 
     resp = send_ctl_command(cmd, payload)
     if resp.get("status") == "ok":
@@ -382,7 +388,23 @@ def main() -> int:
 
     # Subcommand: ctl
     p_ctl = subparsers.add_parser("ctl", help="Send control commands to running instance")
-    p_ctl.add_argument("command", choices=["edit", "pause", "resume", "theme", "preset", "size", "move", "reload", "status", "quit"])
+    p_ctl.add_argument(
+        "command",
+        choices=[
+            "edit",
+            "pause",
+            "resume",
+            "theme",
+            "preset",
+            "size",
+            "move",
+            "reload",
+            "status",
+            "quit",
+            "typing",
+            "mic",
+        ],
+    )
     p_ctl.add_argument("args", nargs="*", help="Arguments for control command")
     p_ctl.set_defaults(func=cmd_ctl)
 

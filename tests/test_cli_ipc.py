@@ -5,7 +5,7 @@ import tempfile
 import time
 from pathlib import Path
 
-from PySide6.QtCore import QCoreApplication
+from PySide6.QtWidgets import QApplication
 
 from ferrowidget.audio.capture import AudioCaptureThread, get_default_monitor_source
 from ferrowidget.cli import cmd_ctl, cmd_doctor, cmd_dump_frame
@@ -45,6 +45,14 @@ def test_cli_ctl_input_validation():
     args_bad_theme = argparse.Namespace(command="theme", args=[])
     assert cmd_ctl(args_bad_theme) == 1
 
+    # Typing with invalid mode
+    args_bad_typing = argparse.Namespace(command="typing", args=["badmode"])
+    assert cmd_ctl(args_bad_typing) == 1
+
+    # Mic with invalid mode
+    args_bad_mic = argparse.Namespace(command="mic", args=["badmode"])
+    assert cmd_ctl(args_bad_mic) == 1
+
 
 def test_audio_capture_lifecycle_and_features():
     """Verify AudioCaptureThread synthetic mode produces valid features and terminates cleanly."""
@@ -56,6 +64,12 @@ def test_audio_capture_lifecycle_and_features():
     assert feat is not None
     assert len(feat.bands) == 32
     assert not feat.is_silent
+
+    # Toggle mic mode
+    thread.set_mic_mode(True)
+    assert thread.mic_mode is True
+    thread.set_mic_mode(False)
+    assert thread.mic_mode is False
 
     thread.stop()
     thread.join(timeout=2.0)
@@ -98,9 +112,9 @@ def test_ipc_roundtrip():
     """Verify JSON-line protocol over Unix socket between client and server."""
     import threading
 
-    app = QCoreApplication.instance()
+    app = QApplication.instance()
     if app is None:
-        app = QCoreApplication([])
+        app = QApplication([])
 
     received_cmds = []
 
@@ -110,8 +124,12 @@ def test_ipc_roundtrip():
             return {"status": "ok", "locked": False}
         elif cmd == "theme":
             return {"status": "ok", "theme": payload.get("name")}
+        elif cmd == "typing":
+            return {"status": "ok", "typing_reactive": payload.get("mode") == "on"}
+        elif cmd == "mic":
+            return {"status": "ok", "mic_mode": payload.get("mode") == "on"}
         elif cmd == "status":
-            return {"status": "ok", "fps": 60.0}
+            return {"status": "ok", "fps": 60.0, "typing_reactive": True, "mic_mode": False}
         return {"status": "ok"}
 
     server = IPCServer(handler=mock_handler)
@@ -141,11 +159,23 @@ def test_ipc_roundtrip():
         assert resp_theme.get("status") == "ok"
         assert resp_theme.get("theme") == "neon"
 
+        # Send 'typing' command
+        resp_typing = call_cmd("typing", {"mode": "on"})
+        assert resp_typing.get("status") == "ok"
+        assert resp_typing.get("typing_reactive") is True
+
+        # Send 'mic' command
+        resp_mic = call_cmd("mic", {"mode": "off"})
+        assert resp_mic.get("status") == "ok"
+        assert resp_mic.get("mic_mode") is False
+
         # Send 'status' command
         resp_status = call_cmd("status")
         assert resp_status.get("status") == "ok"
         assert resp_status.get("fps") == 60.0
+        assert resp_status.get("typing_reactive") is True
+        assert resp_status.get("mic_mode") is False
 
-        assert len(received_cmds) == 3
+        assert len(received_cmds) == 5
     finally:
         server.stop()

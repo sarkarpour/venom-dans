@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import shutil
 import subprocess
+import sys
 import threading
 import time
 from typing import Optional
@@ -59,6 +60,48 @@ def get_default_monitor_source() -> Optional[str]:
     return "@DEFAULT_MONITOR@"
 
 
+def get_default_input_source() -> Optional[str]:
+    """Query default microphone/input source, with PipeWire fallback."""
+    # 1. Try pactl
+    if shutil.which("pactl"):
+        try:
+            proc = subprocess.run(
+                ["pactl", "get-default-source"],
+                capture_output=True,
+                text=True,
+                timeout=1.0,
+                check=False,
+            )
+            if proc.returncode == 0:
+                src = proc.stdout.strip()
+                if src:
+                    return src
+        except Exception as e:
+            logger.debug("Failed to query default source via pactl: %s", e)
+
+    # 2. Try wpctl (WirePlumber / PipeWire)
+    if shutil.which("wpctl"):
+        try:
+            proc = subprocess.run(
+                ["wpctl", "inspect", "@DEFAULT_AUDIO_SOURCE@"],
+                capture_output=True,
+                text=True,
+                timeout=1.0,
+                check=False,
+            )
+            if proc.returncode == 0:
+                for line in proc.stdout.splitlines():
+                    line = line.strip()
+                    if line.startswith("node.name ="):
+                        node_name = line.split("=", 1)[1].strip().strip('"')
+                        if node_name:
+                            return node_name
+        except Exception as e:
+            logger.debug("Failed to query default source via wpctl: %s", e)
+
+    return "@DEFAULT_SOURCE@"
+
+
 class AudioCaptureThread(threading.Thread):
     """Background worker thread capturing system audio and running DSP analysis."""
 
@@ -68,10 +111,12 @@ class AudioCaptureThread(threading.Thread):
         sensitivity: float = 1.0,
         visual_delay_ms: int = 0,
         synthetic_source: Optional[str] = None,
+        mic_mode: bool = False,
     ):
         super().__init__(name="AudioCaptureThread", daemon=True)
         self.source = source
         self.synthetic_source = synthetic_source
+        self.mic_mode = mic_mode
         self.analyzer = AudioAnalyzer(sensitivity=sensitivity)
         self.analyzer.set_visual_delay(visual_delay_ms)
 
@@ -121,6 +166,22 @@ class AudioCaptureThread(threading.Thread):
 
     def set_visual_delay(self, delay_ms: int) -> None:
         self.analyzer.set_visual_delay(delay_ms)
+
+    def set_mic_mode(self, enabled: bool) -> None:
+        """Toggle between microphone input mode and system monitor playback mode."""
+        if self.mic_mode == enabled:
+            return
+        logger.info("Switching AudioCaptureThread mic_mode: %s -> %s", self.mic_mode, enabled)
+        self.mic_mode = enabled
+        self.restart_capture()
+
+    def restart_capture(self) -> None:
+        """Terminate active capture process/stream so it re-spawns with new source/mode."""
+        if self._parec_proc:
+            try:
+                self._parec_proc.terminate()
+            except Exception:
+                pass
 
     def run(self) -> None:
         """Main capture loop running at ~93.75 hops/second."""
@@ -262,15 +323,21 @@ class AudioCaptureThread(threading.Thread):
                 continue
 
             if not has_parec and not has_pw_record:
+                # Try sounddevice if available (e.g. on Windows)
+                if self._try_sounddevice_capture(hop_size):
+                    continue
                 # No audio capture utility available: graceful idle fallback
                 feat = self.analyzer.process_hop(zero_chunk)
                 self._latest_features = feat
                 time.sleep(dt_hop)
                 continue
 
-            target_source = self.source
-            if target_source == "auto":
-                target_source = get_default_monitor_source() or "@DEFAULT_MONITOR@"
+            if self.mic_mode:
+                target_source = get_default_input_source() or "@DEFAULT_SOURCE@"
+            else:
+                target_source = self.source
+                if target_source == "auto":
+                    target_source = get_default_monitor_source() or "@DEFAULT_MONITOR@"
             self._current_source = target_source
 
             cmd = []
@@ -285,19 +352,21 @@ class AudioCaptureThread(threading.Thread):
                     "--raw",
                 ]
             elif has_pw_record:
-                # Native PipeWire capture targeting the monitor of default audio sink in raw f32
+                pw_target = "@DEFAULT_AUDIO_SOURCE@" if self.mic_mode else "@DEFAULT_AUDIO_SINK@"
                 cmd = [
                     "pw-record",
                     "--target",
-                    "@DEFAULT_AUDIO_SINK@",
-                    "-P",
-                    '{"stream.capture.sink":true}',
+                    pw_target,
+                ]
+                if not self.mic_mode:
+                    cmd.extend(["-P", '{"stream.capture.sink":true}'])
+                cmd.extend([
                     "--raw",
                     "--format=f32",
                     "--rate=48000",
                     "--channels=2",
                     "-",
-                ]
+                ])
 
             try:
                 self._parec_proc = subprocess.Popen(
@@ -344,3 +413,50 @@ class AudioCaptureThread(threading.Thread):
                     feat = self.analyzer.process_hop(zero_chunk)
                     self._latest_features = feat
                     time.sleep(dt_hop)
+
+    def _try_sounddevice_capture(self, hop_size: int) -> bool:
+        """Capture via sounddevice on Windows or PortAudio-enabled environments."""
+        try:
+            import sounddevice as sd
+        except Exception:
+            return False
+
+        try:
+            device_idx = None
+            extra_settings = None
+
+            if self.mic_mode:
+                device_idx = None  # Default input device
+            else:
+                if sys.platform == "win32":
+                    try:
+                        wasapi_api_idx = next(
+                            (i for i, api in enumerate(sd.query_hostapis()) if "WASAPI" in api.get("name", "")),
+                            None,
+                        )
+                        if wasapi_api_idx is not None:
+                            extra_settings = sd.WasapiSettings(loopback=True)
+                            default_output = sd.query_hostapis(wasapi_api_idx).get("default_output_device")
+                            if default_output is not None and default_output >= 0:
+                                device_idx = default_output
+                    except Exception as e:
+                        logger.debug("WASAPI loopback configuration error: %s", e)
+
+            cur_mode = self.mic_mode
+            with sd.InputStream(
+                samplerate=48000,
+                channels=2,
+                dtype="float32",
+                blocksize=hop_size,
+                device=device_idx,
+                extra_settings=extra_settings,
+            ) as stream:
+                logger.info("Spawned sounddevice capture stream (mic_mode=%s)", cur_mode)
+                while self._running.is_set() and not self._paused.is_set() and self.mic_mode == cur_mode:
+                    data, _ = stream.read(hop_size)
+                    feat = self.analyzer.process_hop(data)
+                    self._latest_features = feat
+            return True
+        except Exception as e:
+            logger.debug("sounddevice capture error: %s", e)
+            return False

@@ -184,6 +184,44 @@ class FluidSimulation:
             dist = float(self.rng.uniform(0.30, 0.50))
             self.pos[idx] = [dist * math.cos(angle), dist * math.sin(angle)]
 
+    def inject_typing_impulse(self, strength: float = 1.0) -> None:
+        """Inject a sharp impulse from a keystroke: sprouts Rosensweig spikes and pulses fluid radii."""
+        s = float(max(0.1, min(3.0, strength)))
+        # 1. Sprout sharp Rosensweig spikes
+        self.spike_vel = float(min(45.0, self.spike_vel + 18.0 * s))
+        self.spike = float(min(1.8, self.spike + 0.40 * s))
+
+        # 2. Fluid pulse: expand droplet radii with kinetic energy jump
+        r_kick = self.rng.uniform(0.15, 0.32, size=self.n_blobs).astype(np.float32) * s
+        self.r_vel += r_kick
+
+        # 3. Pulse electromagnet field
+        self.magnet_str[0] = float(min(3.2, self.magnet_str[0] + 0.85 * s))
+        rand_mag = int(self.rng.integers(1, self.n_magnets))
+        self.magnet_str[rand_mag] = float(min(2.5, self.magnet_str[rand_mag] + 1.2 * s))
+
+        # 4. Fling occasional satellite droplet if space available
+        n_flying = int(np.sum(self.detached[self.n_core:]))
+        if n_flying < self.max_flying and self.rng.random() < 0.35:
+            p_core = np.mean(self.pos[:self.n_core], axis=0)
+            attached_indices = (
+                np.where((~self.detached[self.n_core:]) & (self.cooldown[self.n_core:] <= 0.0))[0]
+                + self.n_core
+            )
+            if len(attached_indices) > 0:
+                c = int(self.rng.choice(attached_indices))
+                self.detached[c] = True
+                self.detach_timer[c] = 0.0
+                self.target_flight_time[c] = float(self.rng.uniform(1.0, 2.2))
+                rel = self.pos[c] - p_core
+                d_rel = float(np.linalg.norm(rel) + 1e-4)
+                rad = rel / d_rel
+                tang = np.array([-rad[1], rad[0]], dtype=np.float32)
+                scatter = float(self.rng.uniform(-0.4, 0.4))
+                dir_vec = rad + scatter * tang
+                dir_vec /= float(np.linalg.norm(dir_vec) + 1e-4)
+                self.vel[c] = dir_vec * float(self.rng.uniform(2.8, 4.5)) * s
+
     def update_choreography(self, feat: Features, delta_seconds: float) -> None:
         """Run fixed 240 Hz substeps for frame delta time (clamped to 0.1s max)."""
         clamped_dt = min(delta_seconds, 0.10)
