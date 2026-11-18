@@ -57,9 +57,9 @@
 ```text
 54c547a0db8247c68103706f1d60f8956b6bc082b76075cc712196f7a827aa49  ferrowidget_0.1.0_all.deb
 740cb74f02fb9058edbfa4984199173d396ce5174b90e10c07428b1a4cba6327  ferrowidget-linux.tar.gz
-1aac380d3240744506f4467f7d3ccf592b873f6a903e41b58590d6afa7d46480  ferrowidget-windows.zip
-6672331bf6469c887e7fe26b6f3d4b90688df3a6dcf1cb5b8af458f8baa9ee78  ferrowidget-android.zip
-f7321073a8c9529c83abace1b18794d62cbf9c7cb44e34453f6fd1b1436f7f31  ferrowidget-0.1.0-py3-none-any.whl
+ecf93d0f4d802bd8425ef05ae8ef2490f1107e6b01f713d3d7d668927770e611  ferrowidget-windows.zip
+d1b940d6e6356c6c732cd79db497da54e69582ea5625bdc9afc2f8f66a28a54f  ferrowidget-android.zip
+754f383c73b5429d165e543f7768bb10488b90dcad25acd4fa4e77d935294278  ferrowidget-0.1.0-py3-none-any.whl
 ```
 
 ---
