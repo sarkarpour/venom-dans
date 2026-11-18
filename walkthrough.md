@@ -33,37 +33,44 @@ FerroWidget has been developed, tested, and verified on Ubuntu Linux (Wayland se
 ## 3. Empirical Verification Record
 
 ### 3.1. Test Suite Execution (`pytest`)
-Ran all 18 unit and integration tests covering DSP, physics, configuration, OpenGL rendering, and IPC:
+Ran all 25 unit and integration tests covering DSP, physics, configuration, OpenGL rendering, and IPC:
 ```bash
 ./.venv/bin/pytest tests/ -v
 ```
 **Result**:
 ```
-tests/test_physics.py::test_simulation_determinism PASSED                [  5%]
-tests/test_physics.py::test_no_nans_and_bounded_energy_over_10_minutes PASSED [ 11%]
-tests/test_physics.py::test_presets PASSED                               [ 16%]
-tests/test_physics.py::test_uniform_buffers_packing PASSED               [ 22%]
-tests/test_render.py::test_renderer_initialization_and_offscreen_render PASSED [ 27%]
-tests/test_render.py::test_alpha_boundary_and_premultiplied_invariants PASSED [ 33%]
-tests/test_render.py::test_all_themes_render PASSED                      [ 38%]
-tests/test_render.py::test_raymarch_mode_render PASSED                   [ 44%]
-tests/test_dsp.py::test_synthetic_audio_generators PASSED                [ 50%]
-tests/test_dsp.py::test_hop_execution_latency PASSED                     [ 55%]
-tests/test_dsp.py::test_frequency_band_accuracy PASSED                   [ 61%]
-tests/test_dsp.py::test_120bpm_kick_onset_timing PASSED                  [ 66%]
-tests/test_dsp.py::test_agc_invariance_across_input_gains PASSED         [ 72%]
-tests/test_config.py::test_default_config_validation PASSED              [ 77%]
-tests/test_config.py::test_clamping_out_of_bounds_values PASSED          [ 83%]
-tests/test_config.py::test_save_and_reload_persistence PASSED            [ 88%]
-tests/test_cli_ipc.py::test_cli_doctor PASSED                            [ 94%]
-tests/test_cli_ipc.py::test_ipc_roundtrip PASSED                         [100%]
+tests/test_cli_ipc.py::test_cli_doctor PASSED                            [  4%]
+tests/test_cli_ipc.py::test_cli_argument_validation PASSED               [  8%]
+tests/test_cli_ipc.py::test_ipc_roundtrip PASSED                         [ 12%]
+tests/test_cli_ipc.py::test_dump_frame_generates_all_eight_moments PASSED [ 16%]
+tests/test_cli_ipc.py::test_audio_thread_clean_lifecycle PASSED          [ 20%]
+tests/test_cli_ipc.py::test_monitor_source_resolution PASSED             [ 24%]
+tests/test_config.py::test_default_config_validation PASSED              [ 28%]
+tests/test_config.py::test_clamping_out_of_bounds_values PASSED          [ 32%]
+tests/test_config.py::test_save_and_reload_persistence PASSED            [ 36%]
+tests/test_config.py::test_corrupted_type_resilience PASSED              [ 40%]
+tests/test_dsp.py::test_synthetic_audio_generators PASSED                [ 44%]
+tests/test_dsp.py::test_hop_execution_latency PASSED                     [ 48%]
+tests/test_dsp.py::test_frequency_band_accuracy PASSED                   [ 52%]
+tests/test_dsp.py::test_120bpm_kick_onset_timing PASSED                  [ 56%]
+tests/test_dsp.py::test_agc_invariance_across_input_gains PASSED         [ 60%]
+tests/test_physics.py::test_simulation_determinism PASSED                [ 64%]
+tests/test_physics.py::test_no_nans_and_bounded_energy_over_10_minutes PASSED [ 68%]
+tests/test_physics.py::test_presets PASSED                               [ 72%]
+tests/test_physics.py::test_uniform_buffers_packing PASSED               [ 76%]
+tests/test_physics.py::test_droplet_tear_off_and_coalescence_lifecycle PASSED [ 80%]
+tests/test_physics.py::test_flying_pool_limits PASSED                    [ 84%]
+tests/test_render.py::test_renderer_initialization_and_offscreen_render PASSED [ 88%]
+tests/test_render.py::test_alpha_boundary_and_premultiplied_invariants PASSED [ 92%]
+tests/test_render.py::test_all_themes_render PASSED                      [ 96%]
+tests/test_render.py::test_raymarch_mode_render PASSED                   [100%]
 
-============================= 18 passed in 47.02s ==============================
+============================= 25 passed in 52.34s ==============================
 ```
 
 ### 3.2. Code Quality & Linting (`ruff`)
 ```bash
-./.venv/bin/ruff check .
+./.venv/bin/ruff check src tests packaging
 ```
 **Result**: `All checks passed!`
 
@@ -81,15 +88,14 @@ Component                  | Status | Details
 Session Type               | [PASS] | wayland
 Desktop Environment        | [PASS] | ubuntu:GNOME
 X11 / XWayland Display     | [PASS] | :0
-Audio Streamer (pw-record) | [PASS] | Found (PipeWire native)
-Audio Controller (pactl)   | [WARN] | Missing
-Default Audio Sink         | [WARN] | Unknown
+Audio Streamer (parec)     | [PASS] | Found
+Audio Controller (pactl)   | [PASS] | Found
+Default Audio Sink         | [PASS] | bluez_output.84:AC:60:B1:00:C6
 OpenGL Hardware Context    | [PASS] | Mesa Intel(R) Graphics (RPL-U) (OpenGL 4.6)
 PySide6 / Qt6 Framework    | [PASS] | Installed
 =================================================================
 
-[!] Recommended packages to install:
-    sudo apt update && sudo apt install -y pulseaudio-utils
+All required core subsystems are functional!
 ```
 
 ### 3.4. Measured Performance Benchmarks
